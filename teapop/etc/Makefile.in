@@ -1,0 +1,58 @@
+# $Id: //depot/Teapop/0.3/etc/Makefile.in#4 $
+#
+prefix		= @prefix@
+sysconfdir	= @sysconfdir@
+
+homespool       = @pop_homespool@
+mailspool       = @pop_mailspool@
+
+CHMOD    = @CHMOD@
+INSTALL  = @INSTALL@
+MV       = @MV@
+RM       = @RM@
+SED      = @SED@
+
+build:
+	@ echo Creating example teapop.passwd;				\
+	if [ "${homespool}" != "nope" ]; then				\
+		${SED} -e 's%@WHEREMAILIS@%~/${homespool}%g'		\
+		    teapop.passwd.in > teapop.passwd ;			\
+	else								\
+		${SED} -e 's%@WHEREMAILIS@%${mailspool}%g'		\
+		    teapop.passwd.in > teapop.passwd ;			\
+	fi
+
+install: build
+	@ echo Checking for existing teapop.passwd;			\
+	if [ -f ${DESTDIR}/${sysconfdir}/teapop.passwd ]; then		\
+		echo "Exists...NOT installing teapop.passwd";		\
+	else								\
+		echo "Not found, installing teapop.passwd";		\
+		${INSTALL} -d ${DESTDIR}/${sysconfdir};			\
+		${INSTALL} teapop.passwd 				\
+			${DESTDIR}/${sysconfdir};			\
+		${CHMOD} 0644 ${DESTDIR}/${sysconfdir}/teapop.passwd;	\
+	fi
+
+makefile: ../config/timestamp
+	@ echo Updating Makefile
+	@ if [ -f Makefile.tmp ]; then					\
+		echo "Please remove Makefile.tmp";			\
+		false;							\
+	fi
+	@ ${MV} Makefile Makefile.tmp
+	@ ${SED} -e 's%^INSTALL *= *\.\..*%INSTALL  = ../config/install-sh -c%'\
+		Makefile.tmp > Makefile
+	@ ${RM} Makefile.tmp
+
+../config/timestamp:
+	@ echo Please run the configure script first
+	@ false
+
+depend:
+
+clean:
+	${RM} -f teapop.passwd
+
+distclean: clean
+	${RM} -f Makefile

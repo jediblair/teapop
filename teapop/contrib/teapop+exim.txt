@@ -1,0 +1,267 @@
+Setting up teapop and exim to serve "virtual" domains
+=====================================================
+
+What do I mean by a "virtual" domain?
+-------------------------------------
+
+I mean a domain for which mail should be handled on your server,
+but which is not related to the primary, "real" FQDN of the
+server.
+
+Example:
+
+For example, the server is called random.example.com.
+The DNS for example.com is set up with an MX record that points
+to random.example.com, so other servers all over the internet will
+send mail for example.com to random.example.com. Exim is set up so
+that mail for users at example.com will be delivered locally (into
+/var/mail/username, where "username" is the username the mail was
+sent to).
+Now you want to set the system up to handle mail for another domain,
+myfriendsdomain.org. "joebloggs@myfriendsdomain.org" is not the
+same as "joebloggs@example.com", so mail for myfriendsdomain.org
+can't just be delivered the same as the mail for example.com.
+
+In this example, "example.com" or "random.example.com" would be
+the "real" domain(s), and "myfriendsdomain.org" is what I refer to
+as a "virtual domain".
+
+
+exim
+----
+
+It's quite simple to configure exim to handle "virtual" domains.
+In a normal exim configuration, you have "local_domains" set to
+specify mail which should be delivered locally (i.e. they are the
+"real" domains). I would recommend that you keep the list of these
+domains in a file (say, /etc/exim/exim_local_domains) unless you've
+already got something more complicated set up.
+
+If you have the local domains listed in a file (one name per line),
+then you will have a line in your exim.conf file that looks like
+this:
+
+local_domains = /etc/exim/exim_local_domains
+
+Well, we now need another file (say, /etc/exim/exim_virtual_domains).
+This file will list all the virtual domains that you wish to serve
+on your machine. Modify the local_domains line in your exim.conf to
+look like this:
+
+local_domains = /etc/exim/exim_local_domains : /etc/exim/exim_virtual_domains
+
+Further down the exim.conf file, there is a section labelled
+"TRANSPORTS". We need to add a subsection in here.
+
+You should see a subsection labelled "local_delivery:" if your
+exim.conf is set up in a vaguely normal manner. In my exim.conf,
+it looks like this:
+
+local_delivery:
+  driver = appendfile
+  group = mail
+  mode = 0660
+  mode_fail_narrower = false
+  envelope_to_add = true
+  file = /var/spool/mail/${local_part}
+
+We will be setting the configuration up so that this subsection only
+gets used when an email is addressed to a domain that's listed in the
+/etc/exim/exim_local_domains file. If it's listed in the
+/etc/exim/exim_virtual_domains file, it will need another subsection,
+looking something like this:
+
+virtual_delivery:
+  driver = appendfile
+  user = teapop
+  group = mail
+  mode = 0660
+  mode_fail_narrower = false
+  envelope_to_add = true
+  file = /var/virtmail/${domain}/${local_part}
+  file_must_exist = true
+
+The first thing to look at here is the second-last line. This tells
+exim where to put mail that it delivers using this subsection's
+instructions. In the case of the example at the top of this file,
+it would put mail for "joebloggs@myfriendsdomain.org" into the
+file /var/virtmail/myfriendsdomain.org/joebloggs. (the fullstop is
+just punctuation, not part of the filename).
+You need to create the directory /var/virtmail/myfriendsdomain.org
+before this will be able to work. You should make the directory mode
+2755 ("chmod 2755 directory-name"), and you should make the owner and
+group of the directory the same as the username specified in the
+"user" line and the group name specified in the "group" line above
+(in this case, "teapop" and "mail"). You may need to create a user
+specially for this. If you do, ensure that the user has an invalid
+shell (say, /bin/false rather than /bin/bash) and an invalid password
+(a "!" or "NOPASSWD" in the /etc/shadow file where the password
+has would normally be). Debian makes this (relatively) easy with
+the "adduser" command:
+
+adduser --system --home /var/virtmail --ingroup mail --disabled-password --gecos Teapop teapop
+
+Note that the last line of the subsection ("file_must_exist = true")
+means that if the user's mailbox does not already exist, then exim
+will not create it. This is to protect against mail being sent to
+misspelled addresses (e.g. "joeblogs@myfriendsdomain.org") and sitting
+unnoticed for months. What happens to mail that is sent to a
+non-existent address will be dealt with later.
+
+Now move down the exim.conf file and look at the section labelled
+"DIRECTORS" (and note, as it says, that ORDER DOES MATTER -- this
+means that if you get your subsections in the wrong order, it
+won't work).
+
+Look first at the "system_aliases:" subsection. You will need to
+add a line to this subsection to stop it from being used for all
+the virtual domains. The line is:
+
+domains = ! /etc/exim/exim_virtual_domains
+
+So the system_aliases: subsection now looks something like this:
+
+system_aliases:
+  domains = ! /etc/exim/exim_virtual_domains
+  driver = aliasfile
+  file_transport = address_file
+  pipe_transport = address_pipe
+  file = /etc/aliases
+  search_type = lsearch
+# user = list
+# Uncomment the above line if you are running smartlist
+
+Now we need to add a section to deal with aliases for the virtual
+domains. It should go immediately below the system_aliases:
+subsection. Mine looks like this:
+
+virtual_aliases:
+  domains = /etc/exim/exim_virtual_domains
+  driver = aliasfile
+  file_transport = address_file
+  pipe_transport = address_pipe
+  file = /var/virtmail/aliases_${domain}
+  modemask = 002
+  owngroups = staff
+  owners = root
+  qualify_preserve_domain = true
+  search_type = lsearch
+# user = list
+# Uncomment the above line if you are running smartlist
+
+
+Which means that in our example, the alias file for myfriendsdomain.org
+would be /var/virtmail/aliases_myfriendsdomain.org -- which should
+probably be owned by user "root", group "staff" or something like that,
+with mode 664. If it is set so that it is world-writable, exim will not
+use it (the "modemask" line). The "owngroups" and "owners" settings must
+match the ownership of the file or exim will not use it.
+
+Nearly there. Look a little further down the DIRECTORS section for the
+"localuser:" subsection. It should look a bit like this:
+
+# This director matches local user mailboxes.
+
+localuser:
+  driver = localuser
+  transport = local_delivery
+
+end
+
+
+And we want it to look more like this:
+
+
+# This director matches local user mailboxes.
+
+localuser:
+  domains = ! /etc/exim/exim_virtual_domains
+  driver = localuser
+  transport = local_delivery
+
+virtualuser:
+  require_files = /var/virtmail/${domain}/${local_part}
+  driver = smartuser
+  transport = virtual_delivery
+
+postmasteruser:
+  domains = /etc/exim/exim_virtual_domains
+  driver = smartuser
+  new_address = localpostmaster@${domain}
+
+end
+
+
+
+Now, what this does is first of all make sure that the localuser:
+subsection only applies to your "real" domain(s). The virtualuser:
+subsection applies to everything that's left after the localuser:
+subsection has done its work. It checks that the user's mailbox
+exists (to make sure that misspelled addresses and spammers'
+address testing don't create lots of unwanted mailboxes for you)
+and then tells exim to use the virtual_delivery transport that we
+defined earlier.
+
+The "postmasteruser:" subsection is used when a message is sent to
+a non-existent user at a virtual domain. In the example we used
+earlier, mail to "joeblogs@myfriendsdomain.org" would get sent to
+"localpostmaster@myfriendsdomain.org", which should be set up as an
+alias in the alias file for "myfriendsdomain.org" (which would be
+/var/virtmail/aliases_myfriendsdomain.org if you set it up as shown
+above). Using "localpostmaster" means that you can alias "postmaster"
+to yourself, or someone who can deal with more serious problems,
+and avoid seeing your friends' mail unnecessarily.
+
+If you leave the "postmasteruser:" subsection out then mail to
+non-existent mailboxes at virtual domains will bounce, which you
+may prefer.
+
+
+That's it as far as exim is concerned.
+
+
+
+
+teapop
+------
+
+The domains that teapop serves are defined using the teapop.passwd
+file, which lives in the /etc/teapop directory.
+
+The file itself has several good examples in it, but for our example
+we will assume that you want to use apache-style .htpasswd files
+for authentication. This can be handy because there are various
+user-management utilities to work with these files floating around
+the net (they can also be a good idea even for your "real" domains
+so that you aren't forced to use the same password for pop3 and for
+login -- why using the same password for both can be a bad idea is
+beyond the scope of this document).
+
+So, what to do... first of all you need to create a .htpasswd file
+for the virtual domain. I usually put these in the same subdirectory
+as the mailboxes (in the example, I would use the file
+/var/virtmail/myfriendsdomain.org/.htpasswd). Once you have created
+the file (using the htpasswd program, perhaps), add a line like
+this to the teapop.passwd file (near the end of the file, in-between
+the "emtpy:*:....." and the "default:*:reject" lines):
+
+myfriendsdomain.org:*:htpasswd:/var/virtmail/myfriendsdomain.org:0:teapop:teapop:/var/virtmail/myfriendsdomain.org/.htpasswd:9999:
+
+The two "teapop"s tell teapop to run as user "teapop" and group
+"teapop". It'd probably be better to tell it to run as group "mail",
+but instead, I just added the user "teapop" to the "mail" group
+(hey, my system just kind of evolved...). If you want to do this,
+use the command:
+
+gpasswd -a teapop mail
+
+
+
+I *think* that's it, but I usually forget something. If I have,
+please let me know.
+
+
+
+
+
+Nick Phillips <nwp@lemon-computing.com>

@@ -1,0 +1,123 @@
+$Id: //depot/Teapop/0.3/contrib/teapop-last.patch#2 $
+
+This patch will add support for the LAST command, as specified in RFC1460. It
+was removed from the POP3 protocol specification in November of 1996, when
+RFC1725 was release. There were several reasons to remove it, and they are
+still all good. I strongly urge every prospective POP3-client author to NOT
+use this command just because Teapop, and possibly other POP3-servers, will
+respond with a positive string. It will most likely NOT do want you want.
+Use the UIDL command instead.
+
+Unfortunately, life is not always easy for a server administrator. Sometime
+you need to support a legacy software that was written back when it was still
+legal to shoot a man in a duel. This is where this patch comes in. It provides
+a pseudo support for the LAST command. It's pseudo because the information
+will not be saved to the next session. Instead it will always start from zero
+when a client connects. This is one of the problems with the LAST command.
+
+This is the actual implementation in v0.3.0, but the patch will work against
+v0.28 and is therefore distributed like this too. There will be a five lines
+offset fuzz, but it should not cause any trouble.
+
+//Ibo
+
+
+Index: include/pop_stat.h
+===================================================================
+RCS file: /usr/local/cvs/toontown/teapop/include/pop_stat.h,v
+retrieving revision 1.2
+diff -u -r1.2 pop_stat.h
+--- include/pop_stat.h	2001/02/02 23:56:27	1.2
++++ include/pop_stat.h	2001/02/05 20:09:10
+@@ -35,5 +35,6 @@
+ int pop_cmd_list __P((char *, POP_INFO *));
+ int pop_cmd_rset __P((char *, POP_INFO *));
+ int pop_cmd_uidl __P((char *, POP_INFO *));
++int pop_cmd_last __P((char *, POP_INFO *));
+ 
+ #endif /* __POP_STAT_H__ */
+Index: include/pop_strings.h
+===================================================================
+RCS file: /usr/local/cvs/toontown/teapop/include/pop_strings.h,v
+retrieving revision 1.3
+diff -u -r1.3 pop_strings.h
+--- include/pop_strings.h	2001/02/02 23:56:27	1.3
++++ include/pop_strings.h	2001/02/05 22:21:09
+@@ -47,6 +47,7 @@
+ #define POP_DELE_GONE	"This one was already sent away."
+ #define POP_DELE_NOMSG	"Message? What message?"
+ #define POP_DELE_OK	"Bye bye, letter"
++#define POP_LAST_BAD	"Syntax: LAST"
+ #define POP_LIST_BAD	"Syntax: LIST [<message number>]"
+ #define POP_LIST_GONE	"The message took a hike."
+ #define POP_LIST_NOMSG	"To be or not to be ... this message is a not."
+Index: teapop/pop_parse.c
+===================================================================
+RCS file: /usr/local/cvs/toontown/teapop/teapop/pop_parse.c,v
+retrieving revision 1.3
+diff -u -r1.3 pop_parse.c
+--- teapop/pop_parse.c	2001/02/02 23:56:28	1.3
++++ teapop/pop_parse.c	2001/02/05 22:22:40
+@@ -50,7 +50,7 @@
+ 	for (;;) {
+ 		switch(pop_wait_for_commands(pinfo->timeout, sizeof(buf), buf,
+ 		    "STAT", "LIST", "RETR", "DELE", "NOOP", "RSET", "TOP",
+-		    "UIDL", "CAPA", "QUIT", NULL)) {
++		    "UIDL", "LAST", "CAPA", "QUIT", NULL)) {
+ 		case -1:/* Something went wrong */
+ 			syslog(LOG_ERR, "Something went wrong. (%d)", errno);
+ 			pop_socket_send(pinfo->out, "%s %s", POP_ERR,
+@@ -86,10 +86,13 @@
+ 		case 8:	/* UIDL */
+ 			pop_cmd_uidl(buf, pinfo);
+ 			break;
+-		case 9:	/* CAPA */
++		case 9:	/* LAST */
++			pop_cmd_last(buf, pinfo);
++			break;
++		case 10:/* CAPA */
+ 			pop_cmd_capa(buf, pinfo);
+ 			break;
+-		case 10:/* QUIT */
++		case 11:/* QUIT */
+ 			return 0;
+ 			break;
+ 		default:
+Index: teapop/pop_stat.c
+===================================================================
+RCS file: /usr/local/cvs/toontown/teapop/teapop/pop_stat.c,v
+retrieving revision 1.4
+diff -u -r1.4 pop_stat.c
+--- teapop/pop_stat.c	2001/02/02 23:56:29	1.4
++++ teapop/pop_stat.c	2001/02/05 22:20:02
+@@ -294,3 +294,30 @@
+ 
+ 	return 0;
+ }
++
++int
++pop_cmd_last(arg, pinfo)
++	char *arg;
++	POP_INFO *pinfo;
++{
++	int counter, lastread;
++
++	POP_MSG *curmsg;
++
++	if (arg[0] != '\0') {
++		pop_socket_send(pinfo->out, "%s %s", POP_ERR, POP_LAST_BAD);
++		return 0;
++	}
++
++	counter = lastread = 0;
++	curmsg = pinfo->firstmsg;
++
++	while (curmsg != NULL) {
++		counter++;
++		if (curmsg->flags & MSG_READ)
++			lastread = counter;
++		curmsg = curmsg->nextmsg;
++	}
++
++	pop_socket_send(pinfo->out, "%s %d", POP_OK, lastread);
++}

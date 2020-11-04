@@ -1,0 +1,21 @@
+service teapop_xinetd
+{
+	disable			= yes
+        type                    = UNLISTED
+	socket_type		= stream
+        protocol                = tcp
+	wait			= no
+	user			= root
+	server			= /usr/sbin/teapop
+	log_on_failure		+= USERID
+        port                    = 110
+}
+
+
+
+
+
+
+
+
+

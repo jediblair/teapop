@@ -1,0 +1,258 @@
+$Id: //depot/Teapop/0.3/doc/INSTALL#5 $
+
+How To Install:
+===============
+
+There are two versions of how to install, the first one is the quick way for
+people in a hurry and the second for those who want to know what they are
+actually doing. Read the one suiting you, or both if you prefer.
+
+Do note that in the examples below a dollar sign ($) means that you should
+type the text following it as a normal user. A pound sign (#) means that you
+must type the text following it as the superuser, root. Obviously you should
+NOT type the dollar-sign ($) nor the pound-sign (#).
+
+Verified platforms:
+-------------------
+Teapop has been successfully compiled on the following platforms:
+
+OpenBSD 2.5, 2.6
+Solaris 2.6 (With gcc) - Please read note at bottom
+Debian 
+
+Since I don't have access to any systems with other OS's than the ones above I
+can't try compiling on them.
+
+Arriba, Arriba-Way:
+-------------------
+
+$ ./configure
+$ make
+
+Now you need to become the superuser, usually done by typing su
+
+# make install
+
+Make sure you have the following line in /etc/services, if it's missing you
+need to add it.
+
+pop3		110/tcp
+
+Next step is to add the following line to the file called /etc/inetd.conf
+
+pop3	stream	tcp	nowait	root	/usr/local/libexec/teapop teapop
+
+Now you need to find out the pid number for inetd. If you're not sure how to
+get the pid number for inetd, just reboot the computer instead of doing the
+following step. A hint to find the pid number is to use ps(1). When you have
+the pid number, issue the following command:
+
+# kill -HUP pidnumber
+
+Done! Now enjoy your newly installed POP3-server.
+
+
+What am I doing-way:
+--------------------
+
+The configure-script is a "normal" GNU autoconf script, which most people have
+run into when installing new programs. I will just explain the teapop-specific
+stuff here. You may mix the arguments explained below in any way you want,
+unless noted otherwise. You must specify all arguments you want on one
+command line; if you try to run configure with one argument first and then
+again with another argument, the first will get overridden.
+
+If configure is run without any arguments, it will check if the directory
+/var/mail exists. If it does, the configure script will assume that this is
+where all mailboxes are. If it doesn't find the directory, it will instead
+check if there is a directory called /var/spool/mail. If that directory
+doesn't exist either, configure will exit with an error and ask you to
+manually specify where your mailboxes are.
+
+There are two ways to specify where mailboxes are, one for the people using
+a mailspool and one for people who have the mailboxes in the users homedir.
+This argument will tell teapop where the DEFAULT mailbox is located. If you
+are using a teapop.passwd file, it will take precedence over the default
+location. The two ways, explained in more detail below, are mutually
+exclusive. If you specify both anyway, the homespool argument will take
+precedence over the mailspool argument. However, this behaviour might change
+at anytime without any notice and should not be depended upon.
+
+The first way, for those who are using a mailspool directory, is to use the
+--enable-mailspool switch. If you are using some other directory than the two
+default ones, or if you prefer using /var/spool/mail over /var/mail even if
+both exist, you will need to use this switch. Let's say that you are using
+/usr/spool/mail for your mailspool, then you would type:
+
+$ ./configure --enable-mailspool=/usr/spool/mail
+
+The second way is for all of you who have given up on mailspools, for one or
+another reason, and instead put the mailbox in the users homedir. If the
+mailbox is called Mail you would use the following:
+
+$ ./configure --enable-homespool=Mail
+
+Since POP3 (and mbox-format) isn't really suited for accessing a mailbox with
+more then one concurrent session there is a need to do some kind of locking.
+The default way to lock a users mailbix, in Teapop, is to use the flock(2)
+method. This is an advisory lock that responsible programs checks and
+honors. Unfortunally not all programs are responsible and in some
+instances the definition of responsible varies. Therefor you might prefer to
+use one of the other methods of locking a mailbox; fcntl, lockf and/or
+dotlock. fcntl is the posix locking, while lockf is another type of
+advisory locking. dotlock locking while make Teapop create a file with the
+same name as the users mailbox, but with ".lock" appended to the end.
+
+If you want to use another locking then the default (flock) you should
+specify this when running the configure-script:
+
+$ ./configure --enable-lock=fcntl
+
+It is also possible to specify more then one locking method to the
+configure-script by separating them with a colon:
+
+$ ./configure --enable-lock=flock,dotlock
+
+Beware that flock, fcntl and lockf may block each other, depending on your
+system.
+
+The POP3-protocol gives users two different ways to log on to the server. The
+normal way is the USER/PASS commands. That means that the client first sends
+USER username to the server and then PASS password. As you can see this will
+send the password in cleartext. The other way is to use the APOP command
+instead, which will send the password encrypted with a one time key. The APOP
+command however requires that the password exists in cleartext on the server,
+which means you can't use the system-passwords for APOP. Most UNIX systems
+keep all passwords for user accounts on the system stored in a one way
+encryption method, which means you can't figure out what the password really
+is. Teapop has the APOP support enabled by default, but some admins might
+want to turn it off, maybe because of the "problem" with APOP explained above.
+To turn it off use the following:
+
+$ ./configure --disable-apop
+
+One of the features in Teapop is it's native virtual pop (vpop) support. The
+vpop support will allow you to configure Teapop to do different things
+depending on what domain the user is coming from. For more information on how
+to configure the vpop support look in the sample vpop-configfile
+etc/teapop.passwd or etc/teapop.passwd.template, which is used to create the
+former file during a make. This will use up a couple of extra cpu cycles
+though. So if you have a busy site and don't need the vpop support, you
+can disable it at configuring time with the following:
+
+$ ./configure --disable-vpop
+
+
+Teapop supports the POP-before-SMTP (or SMTP-after-POP) mechanism by writing
+the IP addresses of previously authenticated clients to a file.
+Most MTA's can use this file to allow relaying for the IP addresses listed in
+this file. To enable this support call configure with the following option:
+
+$ ./configure --enable-popauth-file
+
+This will write the IP addresses of the clients which authenticated correctly
+to the file "popauth" in the "var" directory of your Teapop installation. You
+can choose another location/filename for that file by passing it as a parameter
+to the configure option, e.g.:
+
+$ ./configure --enable-popauth-file=/etc/mail/popsmtp
+
+You need to call the cronpopauth.pl (see the bin subdirectory) regularly
+(e.g. by cron) to ensure that older entries are removed from that file.
+
+
+Remember to add all arguments you want to send to the configuring script. If
+you want to use the flock(3) method and disable APOP you would type:
+
+$ ./configure --enable-flock --disable-apop
+
+If you are happy with how Teapop configures itself by default you just need
+to run the configure-script without any arguments:
+
+$ ./configure
+
+Now you need to build Teapop. To do that just issue the following command:
+
+$ make
+
+When that is done you need to install Teapop. This has to be done as the
+superuser (root). Teapop will install itself in the correct places with the
+following command:
+
+# make install
+
+Now you are almost done. All you need now is to enable Teapop to startup when
+someone connects to your pop3 port (110). There are two ways to start Teapop,
+one is from inetd and the other way is to run it in standalone mode. The first,
+through inetd, is ok for small and medium sites but bigger sites are strongly
+recommended to use the standalone feature.
+
+Running Teapop through inetd:
+-----------------------------
+Check in your /etc/services and make sure you have the following line in it,
+or add it if needed
+
+pop3		110/tcp
+
+Note: Some systems have pop-3 setup in /etc/services instead of pop3. If your
+      system is one of them, either replace pop3 with pop-3 in the examples
+      found here or add the above line.
+
+To start Teapop from inetd, add the following line to /etc/inetd.conf
+
+pop3	stream	tcp	nowait	root	/usr/local/libexec/teapop teapop
+
+Note: Some systems allow you to enchance your sites security by adding a
+      tcpwrapper. Please check your system manuals for information to see if
+      such exists and if so, how to use it. (Hint: typing "man tcpd" (without
+      quotes) will give you the information on several system with tcpwrappers)
+
+If you already have a line starting with pop3, you need to either remove that
+line or add a # in front of it, which comments out the line. When that is done
+you need to issue a kill -HUP pid-of-inetd and then you are all set to go.
+
+Running Teapop through xinetd:
+------------------------------
+Some OS's have decided to remove the "standard" inetd and ship with xinetd
+instead. If you are running one of those, the above section will not work
+for you, instead you have to create a file called /etc/xinetd.d/teapop
+and the following in it:
+
+service pop3
+{
+	socket_type	= stream
+	protocol	= tcp
+	wait		= no
+	user		= root
+	server		= /usr/local/libexec/teapop
+	server_args	= teapop
+}
+
+If you have installed Teapop in another directory than the default, you will
+need to change the server line to reflect the correct path.
+
+You need to restart xinetd for it to notice the change.
+
+Running Teapop as standalone:
+-----------------------------
+Start Teapop with the -s argument and teapop will put itself into the
+background and start to listen on port 110. You want to do something
+like this:
+
+# ./teapop -s
+
+Note to Solaris users:
+----------------------
+If you are using Solaris, you must pay attention to the LD_LIBRARY_PATH
+environment setting. An incorrect setting may cause Teapop to not compile
+and/or not to start.
+
+When running the configure-script and compiling Teapop, /usr/ucblib must
+be present in LD_LIBRARY_PATH. Teapop needs the flock()-compability that
+is found in libucb, which is present in /usr/ucblib.
+
+If you want MySQL or PostgreSQL support, you need to also add the path
+to the lib-file for accessing respective database.
+
+This is a "design-feature" in Solaris, and not a restriction in Teapop.
+

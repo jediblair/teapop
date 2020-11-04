@@ -1,0 +1,97 @@
+$Id: //depot/Teapop/0.3/contrib/README#5 $
+
+This directory contains files that have been contributed by teapop users. I
+have put the files in here because I have for some reason decided against
+incorporating them into the official distribution, but still believe they are
+of value for some of the teapop community. Obviously no support will be
+given on them, nor is there any guarantee that the information in them is 
+correct, will work and isn't just an outright lie. To put it in simple
+english, use everything here at your own risk and don't come crying to me
+if your head blows up because of it.
+
+//Ibo
+
+cryptpass.diff
+
+   Added: 2000-07-12   Updated: never   Obsoleted by: Teapop v0.26
+   Author: Teaspoon <ibo@toontown.org>
+
+   This patch makes teapop expect a password encrypted with crypt(3) when
+   using the textfile authentication method, instead of having plain text
+   passwords as it is today.
+
+indent.pro
+
+   Added: 2001-06-17   Updated: never
+   Author: Teaspoon <ibo@toontown.org>
+
+   Configuration for indent to generate the code style Teapop uses. It's
+   almost perfect, but there might be some quirks left in this config-file.
+   It's a good idea to run your code through this before sending it as a
+   contribution to the team, since it will save us the hassle of reformating
+   it.
+
+teapop+exim.txt
+
+   Added: 2001-09-01   Updated: never
+   Author: Nick Phillips <nwp@lemon-computing.com>
+
+   Explains how to use Exim and Teapop together.
+
+teapop-last.patch
+
+   Added: 2001-02-05   Updated: never   Obsoleted by: Teapop v0.3.0
+   Author: Teaspoon <ibo@toontown.org>
+
+   This patch adds pseudo support for the LAST command to Teapop v0.28,
+   which is required by some legacy applications.
+
+virtualmail.html
+
+   Added: 2000-09-19   Updated: never
+   Author: Leon Harris <leon@quoll.com>
+
+   An explanation on how to use Teapop and sendmail on linux systems.
+
+rpm/
+
+   Added: 2001-06-14   Updated: never
+   Author: Ivan F. Martinez <ivanfm@ecodigit.com.br>
+
+   Directory with files for RPM support.
+   You can generate an binary RPM using the command :
+   rpm -tb teapop-source.tgz
+
+java/
+
+   Added: 2001-06-14   Updated: never
+   Author: Ivan F. Martinez <ivanfm@ecodigit.com.br>
+
+   Directory with files for using java Authentication
+
+popauther3.pl
+
+   Added: 2001-06-16   Updated: never
+   Author: Ivan F. Martinez <ivanfm@ecodigit.com.br>
+   Author: Others
+
+   This file is based on popauther2.pl, gotten from a link at page :
+   http://www.sendmail.org/~ca/email/roaming.html
+   In this page you can get the hack for sendmail for supporting 
+   POP Before SMTP without the need for recompiling sendmail.
+   If you don't want to change your syslog.conf you can start
+   popauther3.pl and do :
+   tail -s 5 -f /var/log/messages > /var/spool/popauther &    
+
+inetmail.patch
+   Added: 2001-06-18   Updated: 2001-07-01
+   Author: Ivan F. Martinez <ivanfm@ecodigit.com.br>
+
+   This patch permits migration from Inet.Mail maiboxes to
+   maildir mailboxes. I use it in my system, Inet.Mail received 
+   the messages and stored each file in the directory, for POP
+   processing. The patch will move the messages to the maildir
+   new/ directory to be processed by teapop.
+   It's not incorported in the pop_maildir.c because it will be
+   used only during migration of the POP servers.
+

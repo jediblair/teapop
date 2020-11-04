@@ -1,0 +1,271 @@
+$Id: //depot/Teapop/0.3/doc/ChangeLog#17 $
+
+Version L Description
+-------	- -----------------------------------------------------------------
+0.3.8   + Allow port to listen to in standalone to be changed with -P.
+	  (Patch by: "Malte S. Stretz" <msquadrat.nospamplease@gmx.net>)
+	! Reduce memory footprint
+	  (Idea from: "Malte S. Stretz" <msquadrat.nospamplease@gmx.net>)
+	+ Warn when teapop.passwd isn't found and default authentication
+	  is used.
+	+ Introduce softlock, which gives the client an empty mailbox
+	  instead of an error.
+	- Proper handling of CRLF in Maildirs.
+	  (Found by: Matthew Sayler <sayler@speedsite.com>)
+	* Release date: 25-Nov-2003
+
+0.3.7	- The configure script was broken under certain circumstances.
+	* Release date: 22-Jul-2003
+
+0.3.6	+ Attempt to handle broken maildelivery programs that doesn't
+	  quote From_ lines.
+	+ Support to delete messages older then a certain expire date.
+	+ Support for tcpwrapper.
+	! Better cleanup of MySQL connections
+	  (Patch by: Ross West <westr@connection.ca>)
+	! Improved NULL handling on long lines
+	  (Pointed out by: Ross West <westr@connection.ca>)
+	- Possible buffer underflow fixed.
+	- Unbreak APOP with database authentication
+	  (Found by: "Toru Hosaka" <hosaka@kt.rim.or.jp>)
+	! Restrict max value for hashing.
+	+ Mailspool hashing is now availble for all authentication types.
+	  (Based on patch by: Robert Gomu?ka <carramba@pf.pl>)
+	+ Escape userdata for database authenticaion
+	  (Patch by: Robert Gomu?ka <carramba@pf.pl>)
+	+ Support for ia64.
+	+ Support for special logging in SSL-mode.
+	+ IPv6 support when running in inetd-mode.
+	* Release date: 21-Jul-2003
+
+0.3.5	! Improved signal handling in update state.
+	+ Handle broken mbox, which doesn't start with a From-line.
+	- Don't double print v (as in version) in CAPA response.
+	  (Reported by: Dale Blount <lnxus@yahoo.com>)
+	+ Prepend all lines starting with a dot, with an extra dot.
+	  (Patch by: Ross Golder <ross@golder.org>)
+	+ Accept -l as an argument.
+	  (Reported by: <David@webedited.com>)
+	* Release date: 11-Jun-2002
+
+0.3.4	+ Authentication through JAVA
+	  (By: Ivan F. Martinez <ivanfm@os2brasil.com.br>)
+	+ Added a wrapper for lockf, built on fcntl.
+	+ popauth file support for POP-before-SMTP authentication
+	  (By: Stephan Uhlmann <su@su2.info>)
+	+ Rudimental LDAP support.
+	  (By: "Alexandre Ghisoli" <alexandre.ghisoli@ycom.ch>)
+	- Unbreak ignoring of UW-IMAP message.
+	  (Problem reported by: Dale Blount <lnxus@yahoo.com>)
+	* Please note that the mailing lists have change address, for
+	  more info please see:
+	      http://www.toontown.org/teapop/mailinglist.php
+	! Ignore SIGPIPE when in update state.
+	+ Mac OS X support
+	  (By: Thomas Deniau <thomasdeniau@mac.com>)
+	! Behave more decent when running as non-root.
+	  (By: Marc A. Lehmann <pcg@goof.com>)
+	* Release date: 9-Apr-2002
+
+0.3.3	- Fix proper unlocking of mailboxes.
+	* Release date: 2-Sep-2001
+
+0.3.2	- A chdir-call got replaced with a chroot()-call which could
+	  cause problems trying to open mailboxes.
+	+ Support for removing stale dotlock-files.
+	+ Support for fcntl()-locking.
+	  (Based on patch from: Nick Phillips <nwp@lemon-computing.com>)
+	! Improved socket cleanup when exiting in standalone mode.
+	  (Patch by: Ross West)
+	- Removed extra newline at end of UIDL when using existing
+	  UIDLs from message.
+	  (Patch by: Ross West)
+	+ Support for using more then one locking type.
+	  (Based on idea from: Nick Phillips <nwp@lemon-computing.com>)
+	- An off-by-one error would cause Teapop to put a control
+	  character in the wrong place for lines longer then 1023
+	  characters in a mailbox.
+	  (Problem reported by: Leon Harris <leon@quoll.com>)
+	- If the mailbox didn't contain a linefeed at the last line,
+	  it could get lost.
+	  (Problem reported by: Den Ivanov <div@primpogoda.ru>)
+	+ Support for lockf()-locking.
+	+ Added a flock() wrapper for lockf() for system missing
+	  a native flock().
+	! A bit more sane default flags for MySQL-authentication.
+	  (Based on patch from: Ross West)
+	* Release date: 29-Aug-2001
+	
+0.3.1	! Using --enable-extra-dividers without any parameters now yields
+	  the same result as leaving it out.
+	  (Patch by: "Oleg. O. Orlov" <OOO@vmts.ru>)
+	+ Support for Maildirs outside of a users home directory.
+	  (Suggested by: David S. Greenley <david@webedited.com>
+	+ Logs when a successful login is made.
+	  (Patch by: Fabio Muzzi <kurgan@interim.it>
+	- In some environments the logging would have the wrong timezone
+	  on timestamps.
+	- Maildir messages with a certain filename length could get parse
+	  incorrectly in some environments.
+	  (Patch by: David S. Greenley <david@webedited.com>
+	! Teapop will now drop privs AFTER running all user provided
+	  POP-before-SMTP controls.
+	- Maildir could leave .lock files under some circumstances.
+	  (Based on ideas from: Ivan F. Martinez <ivanfm@os2brasil.com.br>
+	! The switch --enable-flock has been deprecated for the more flexible
+	  --enable-lock (which can be set to either flock or dotlock.) The
+	  default is now flock.
+	* Released: 23-Jun-2001
+
+0.3.0	* New version system.
+	* The license has been modified, yet again to comply with BSD-type
+	  licenses.
+	! Clean up of Makefiles and dependencies added.
+	+ Teapop will sleep for 3 seconds after a failed login to slow
+	  down "brute force" attackers.
+	+ Maildir support added.
+	+ Added support for reporting clients IP to a whoson server,
+	  after a successful authentication.
+	+ Support for AIX. 
+	  (Patch by: "Oleg O. Orlov" <OOO@vmts.ru>)
+	! Changed the htpasswd authentication method so it will ignore
+	  anything after the two first fields. This makes Teapop also
+	  support "real" passwd files.
+	  (Patch by: Grant Kaufmann <grantcode@netizen.co.za>)
+	* Released: 2-Apr-2001
+
+0.28	* The distribution has been cleaned up and now only contains the
+	  most relevant RFCs.
+	+ Added support for Teapop to report the IP of a client that
+	  successfully connected to a DRAC-server.
+	+ Added -n switch to disable all DNS-lookups.
+	+ Better handling of groups when dropping privs.
+	  (Based on patch by: Sergey Gershtein <sg@ur.ru>)
+	+ Allow hostname in the IP-field in teapop.passwd, and resolve
+	  hostname to IP. If -n switch is specified, no resolving will be
+	  done, which in turn means IP MUST be specified.
+	  (Contributed by: Sergey Gershtein <sg@ur.ru>)
+	+ Log pid in standalone mode to /var/run/teapop.pid. Overridable
+	  with --enable-piddir switch.
+	  (Suggested by: Sergey Gershtein <sg@ur.ru>)
+	* Released: 21-Dec-2000
+
+0.27	- Always re-set the signal-handler, to accommodate OS's that
+	  remove signal-handler after calls (like IRIX.)
+          (Reported by: Drew Skinner <drew@airlock.com>)
+	  (Fix by: Magnus Stahre <ms@xy.org>)
+	- More PostgreSQL clean up.
+	  (Based on patch by: "Oleg O. Orlov" <OOO@vmts.ru>)
+	+ Teapop can now use existing UIDL's (taken from X-UIDL: header)
+	  if you use the -u parameter at startup.
+	  (Suggested by: Drew Skinner <drew@airlock.com>)
+	+ MySQL support.
+	  (Contributed by: Vlad Patoka <patoka@utcs.utoronto.ca>
+	* Released: 16-Nov-2000
+
+0.26	- bzero() where being used incorrectly in two places, which could
+	  cause the size of messages to look funny.
+	  (Reported by: Tobias Reifenberger <treif@mayn.de>)
+	  (Fix by: Magnus Stahre <ms@xy.org>)
+	+ New authentication method added; htpasswd. It will allow
+	  teapop to authenticate users from a plaintext password file
+	  created by Apache's htpasswd, using the system crypt().
+	+ Support for Solaris 8.
+	* A mailing list for teapop support and users has been created.
+	  To subscribe to it either email listar@toontown.org and in the
+          body write "subscribe teapop-users" (WITHOUT quotes) or email
+          to teapop-users-request@toontown.org with subscribe in the
+          subject line.
+	- Some clean up of PostgreSQL code.
+          (By: Tobias Reifenberger <treif@mayn.de>)
+	! If there is no maildropname entered in the database, use the
+	  userid as maildropname.
+          (By: Tobias Reifenberger <treif@mayn.de>)
+	* Released: 10-Aug-2000
+
+0.25	+ Support for HP-UX
+	+ Support for FreeBSD 4.0.
+	- If --enable-extra-dividers isn't used, both the @-sign and the
+	  %-sign will be used as dividers. If it is used, just the @-sign
+	  will be added to the ones specified.
+	* Released: 24-Jun-2000
+
+0.24	- Better error handling. Fixes a problem that could get nasty if
+	  teapop is being run from a broken inetd.
+	! The --enable-percent configure parameter is removed in favour
+	  of --enable-extra-dividers. With it the @-sign will always be
+	  considered a divider, but you can add any extra character(s)
+	  you want to be dividers too. I suggest using something like:
+	  --enable-extra-dividers=:%
+	* Released: 20-May-2000
+
+0.23	- Call openlog with LOG_NDELAY to avoid problems with chroot.
+	- Print ip/hostname of a host which has failed three login
+	  attempts.
+	+ PostgreSQL support.
+	+ Added a compile time flag to use % as the divider between
+	  username and domain instead of @, since for instance Netscape
+	  by default deletes everything from the @-sign before sending it
+	  to the server.
+	  (Suggested by: Leon Harris <leon@quoll.com>)
+	! Cleanup of Makefile's and the two configure-scripts.
+	* Released: 2-May-2000
+
+0.22	+ Two new arguments are added. -d if you want Teapop to delete
+	  messages that have been RETR(ieved) and -D if you want Teapop
+	  to delete messages that have been read with RETR or TOP.
+	  Messages that have been read with TOP will only be deleted if
+	  the FULL message has been sent to the user.
+	- If TOP was used with incorrect syntax a +OK response would be
+	  sent instead of -ERR.
+	- The configure script forgot to add ~/ in front of the mailbox
+	  name for people who had the mailbox in the users home directory.
+	+ More sysloging; show no. of messages downloaded/read/left and
+	  add a warning when three failed login attempts have been made.
+	+ RFC2449 support. Only CAPA command works though.
+	- If you sent an APOP with incorrect number of arguments, Teapop
+	  silently ignored it, rather than sending -ERR,
+	- If there is no reverse dns for the client connecting, Teapop
+	  would spit out an error and disconnect the client, without
+	  letting it download the mail.
+	  (Found by: "Aaron (Zim)" <abla@ballistic.com>)
+	* Released: 14-Jan-2000
+
+0.21	+ Standalone mode supported now with -s argument.
+	* The license has been amended to comply with the Berkley Style
+	  license. The changes don't really concern end users, though.
+	* Released: 16-Dec-1999
+
+0.20	+ Log info to syslog
+	+ Add hooks for people who want to do pop-before-smtp
+	! The RETR/TOP commands changed to be much faster
+	! Skip everything in a mbox, before the first "From "
+	! Revamp of the password checking routine, especially the
+	  routine for parsing teapop.passwd which at the same time
+	  prepares it for standalone mode.
+	+ Handle abnormal exits.
+	+ If -i argument is specified, teapop will skip the first letter
+	  in the mailbox if it is UW IMAPs control message.
+	+ Drop root privs as soon as we get a valid USER/PASS or APOP.
+	- Don't care about some status headers when calculating UIDL
+	  checksums. Fixes problem with some mail being downloaded twice.
+	+ An example teapop.passwd file included.
+	+ Possible to auth against a textfile.
+	+ Add a -t <seconds> argument to allow the timeout period to be
+	  changed from commandline.
+	+ If the user sends a line longer then 255 octets (RFC2449) silently
+	  discard the rest.
+	+ Teapop can act differently depending on which IP the user is
+	  connected to.
+	* Released: 9-Dec-1999
+
+0.10	* First public version.
+	* Released: 24-Aug-1999
+
+
+Legend
+------
+! Changed feature
++ New feature
+- Bug fix
+* Other relevant information

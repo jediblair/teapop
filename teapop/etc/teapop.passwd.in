@@ -1,0 +1,141 @@
+# $Id: //depot/Teapop/0.3/etc/teapop.passwd.in#5 $
+#
+# Info for where to get the passwords
+#
+# Syntax:
+#
+# <domain>:<IP number>:<authinfo>:
+#
+# NOTE: All lines end with a colon ':'.
+#
+# Where <domain> is what the user types in after the @-sign, or one of the
+# following strings, which have special meanings.
+#
+# empty   - When the user doesn't enter anything after the @-sign, or has no
+#           @-sign at all.
+# default - This entry will be used if no other entry matches.
+#
+#
+# The <IP number> is used for handling of virtual domains on a server. If
+# there are no virtual domains and all users connect to one domain on the
+# server, this field can be left blank, but it is preferable if you add a *,
+# indicating it should cover all domains.
+# NOTE: This only works for IPv4. If you want allow IPv6 authentication
+#       you must use the wildcard * in this field.
+#
+#
+# The <authinfo> can be one of the following:
+#
+# reject
+#          - Rejects all auths for this domain.
+# passwd:<mailspool>:<hash level>:
+# passwd:<mailspool>:<hash level>:<uid>:<gid>:
+#          - Will authenticate against the systems' useraccounts.
+#            <uid> and <gid> are completely optional.
+#            If <uid> and <gid> are not present or blank (normal), then once
+#            a user has been authenticated, Teapop will drop privs to those
+#            of the authenticated user.
+#            If they are present (and one or the other or both are not blank),
+#            then Teapop will use the supplied uid and/or gid instead of those
+#            of the actual user.
+#            This is currently often necessary in order for Teapop to use
+#            dotlocking in a system mailspool (<uid> blank, <gid> set to
+#            "mail", for example). A solution which will enable use of
+#            dotlocking without using these extra options is "coming soon".
+# textfile:<maildir>:<hash level>:<uid>:<gid>:<passwordfile>:<max accounts>:
+#          - Will read the first <max account> accounts in <passwordfile> and
+#            then attempt to validate the user against those records. If Teapop
+#            finds a valid record for the user it will chroot to <maildir>
+#            drop privs to <uid> and <gid>. After that it will open the mailbox
+#            specified for the user in <passwordfile> and of course hashed
+#            with the specified <hash level>.
+#            The format of <passwordfile> is:
+#            <userid>:<password>:<mailbox>
+# htpasswd:<maildir>:<hash level>:<uid>:<gid>:<passwordfile>:<max accounts>:
+#          - Exactly the same as 'textfile', with the exception of the
+#            format of the <passwordfile>. It's an Apache plain-text password
+#            file, created with htpasswd using the system crypt().
+# pgsql:<maildir>:<hash level>:<puid>:<pgid>:<phostname>:<pport>:<pdatabase>:<pdbuser>:<pdbpass>:<ptable>:<puserrow>:<ppassrow>:<pmailrow>
+# mysql:<maildir>:<hash level>:<puid>:<pgid>:<phostname>:<pport>:<pdatabase>:<pdbuser>:<pdbpass>:<ptable>:<puserrow>:<ppassrow>:<pmailrow>
+#          - puid = drop teapop's privs to uid
+#            pgid = drop teapop's privs to gid
+#            phostname = connect to a sql server on this server
+#            pport = connect to this port (blank = standard port)
+#            pdatabase = use this database
+#            pdbuser = user to login to the database as
+#            pdbpass = password to login to the database
+#            ptable = table info about accounts can be found in
+#            puserrow = the row that contains usernames
+#            ppassrow = row that contains passwords
+#            pmailrow = row that contains name of the maildrop, if empty,
+#                       asume the maildropname is the same as the username
+#                       (this is relative maildir)
+# java:<maildir>:<hash level>:<uid>:<gid>
+#          - Will authenticate calling a Java class, passing the user data
+#            the class used to authenticate are defined when compiling
+#            teapop
+# ldap:<maildir>:<hash level>:<phostname>:<pport>:<prootdn>:<pbind>:
+#          - phostname = Hostname of LDAP server to connect to
+#            pport = Port to connect to at LDAP server (normally 389)
+#            prootdn = Root DN of tree
+#            pbind = Bind method (Valid values: simple and tls)
+#
+# Maildir support: If you want to use Maildir's instead of mbox, please
+#                  make sure that the mailbox name for users ends with
+#                  a slash (/).
+# mbox support:    Make sure the users mailbox name do NOT end with
+#                  a slash (/).
+#
+# examples:
+#
+# If user connects without a domain part, authenticate against the
+# accounts on the system. The mailboxes are in the users homedir and are
+# called .Mailbox
+#
+#     empty:*:passwd:~/.Mailbox:0:
+#
+# If your mailboxes are in a system mailspool in, say, /var/mail, use:
+#
+#     empty:*:passwd:/var/mail:0:
+#
+# If you get "-ERR Mailbox already locked." errors with the example
+# above, try changing it to something like this:
+#
+#     empty:*:passwd:/var/mail:0::mail:
+# 
+# where the second "mail" is a group that has permission to create
+# files in your mailspool directory.
+#
+# To handle virtual domains add the IP number of the domain the user is
+# connecting to, as in the following example. If you add the IP number then
+# the client will connect to the virtual domain with that IP number. It can
+# be left blank or a * can be used to allow authorization on all IP numbers
+# on a machine.
+#
+#     example.com:192.168.1.125:passwd:/var/mail:1:
+#     or
+#     empty:192.168.1.125:passwd:/var/mail:1:
+#
+# If a user logs in with example.com as domain, authenticate against the
+# systems' accounts. The mailboxes are in /var/mail, with one hash level,
+# and have the same name as the useraccount, ie /var/mail/u/userid
+#
+#     example.com:*:passwd:/var/mail:1:
+#
+# If the user logs in with schmoop.com, authenticate against a textfile 
+# called /home/susan/passwd. Before opening a mailbox, drop privs to 
+# uid susan and gid susan and then chroot to /home/susan/mail. Also,
+# susan is only allowed to have 10 accounts for schmoop.com.
+#
+#     schmoop.com:*:textfile:/home/susan/mail:0:susan:susan:/var/teapop/schmoop/passwd:10:
+#
+# For all others, autoreject them
+#
+#     default:*:reject:
+#
+#
+#
+#
+# Short example to get you going at once:
+empty:*:passwd:@WHEREMAILIS@::
+default:*:reject

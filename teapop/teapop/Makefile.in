@@ -1,0 +1,158 @@
+# $Id: //depot/Teapop/0.3/teapop/Makefile.in#6 $
+#
+prefix		= @prefix@
+sysconfdir	= @sysconfdir@
+exec_prefix	= @exec_prefix@
+libexecdir	= @libexecdir@
+localstatedir  = @localstatedir@
+
+CC       = @CC@
+CFLAGS   = -I../include -I../config -DETC_DIR=\"$(sysconfdir)\" -DVAR_DIR=\"$(localstatedir)\" @CFLAGS@
+LDFLAGS  = @LDFLAGS@
+LIBS     = @LIBS@
+
+CHMOD    = @CHMOD@
+INSTALL  = @INSTALL@
+MV       = @MV@
+RM       = @RM@
+SED      = @SED@
+STRIP    = @STRIP@
+
+OBJS	= @ADD_FLOCK@ @ADD_LOCKF@ @ADD_MD5@ pop_auth.o pop_cmd_capa.o	\
+	  pop_cmd_dele.o pop_cmd_last.o pop_cmd_list.o pop_cmd_noop.o	\
+	  pop_cmd_retr.o pop_cmd_rset.o pop_cmd_stat.o pop_cmd_top.o	\
+	  pop_cmd_uidl.o pop_dele.o pop_dnld.o pop_file.o pop_hello.o	\
+	  @ADD_JAVA@ @ADD_LDAP@ pop_lock.o pop_maildir.o pop_mbox.o	\
+	  @ADD_MYSQL@ pop_parse.o pop_passwd.o @ADD_PGSQL@		\
+	  pop_popsmtp.o pop_priv.o @ADD_DRAC@ @ADD_WHOSON@		\
+	  @ADD_POPAUTH_FILE@ pop_profil.o pop_signal.o pop_stat.o	\
+	  pop_strings.o pop_socket.o teapop.o version.o
+
+SRC=${OBJS:%.o=%.c}
+
+.c.o:
+	${CC} ${CFLAGS} -c $< -o $@
+
+build: ${OBJS}
+	${CC} ${CFLAGS} ${OBJS} ${LDFLAGS} ${LIBS} -o teapop
+
+install: build
+	@ if [ -f ${DESTDIR}/${libexecdir} ]; then					\
+		if [ ! -d ${DESTDIR}/${libexecdir} ]; then				\
+			echo "Destination directory is not a normal directory";\
+			exit 1;						\
+		fi							\
+	fi
+	@ if [ -f ${DESTDIR}/${libexecdir}/teapop ]; then				\
+		${MV} ${DESTDIR}/${libexecdir}/teapop ${DESTDIR}/${libexecdir}/teapop.old;	\
+	fi
+	@ if [ "${STRIP}" != "nostrip" ]; then				\
+		${STRIP} teapop;					\
+	fi
+	${INSTALL} -d ${DESTDIR}/${libexecdir}
+	${INSTALL} teapop ${DESTDIR}/${libexecdir}
+	${CHMOD} 0555 ${DESTDIR}/${libexecdir}/teapop
+	${INSTALL} -d ${DESTDIR}/${localstatedir}
+
+makefile: ../config/timestamp
+	@ echo Updating Makefile
+	@ if [ -f Makefile.tmp ]; then					\
+		echo "Please remove Makefile.tmp";			\
+		false;							\
+	fi
+	@ ${MV} Makefile Makefile.tmp
+	@ ${SED} -e 's%^INSTALL *= *\.\..*%INSTALL  = ../config/install-sh -c%'\
+		Makefile.tmp > Makefile
+	@ ${RM} Makefile.tmp
+
+../config/timestamp:
+	@ echo Please run the configure script first
+	@ false
+
+depend:
+	@ if [ -f Makefile.tmp ]; then					\
+		echo "Please remove Makefile.tmp";			\
+		false;							\
+	fi
+	@ echo "Removing old dependency"
+	@ ${MV} -i Makefile.in Makefile.tmp
+	@ ${SED} -e '1,/^# do not diddle with anything below/!d'	\
+		Makefile.tmp > Makefile.in
+	@ echo >> Makefile.in
+	@ echo "Adding new dependency"
+	@ ${CC} ${CFLAGS} -MM ${SRC} >> Makefile.in
+	@ ${RM} Makefile.tmp
+
+clean:
+	${RM} -f ${OBJS} teapop teapop.core core
+
+distclean: clean
+	${RM} -f Makefile
+
+# do not diddle with anything below - it's generated automatically
+
+pop_auth.o: pop_auth.c ../config/config.h ../include/teapop.h \
+ ../include/pop_cmds.h ../include/pop_hello.h ../include/pop_passwd.h \
+ ../include/pop_socket.h ../include/pop_strings.h
+pop_cmd_capa.o: pop_cmd_capa.c ../config/config.h ../include/teapop.h \
+ ../include/pop_cmds.h ../include/pop_socket.h \
+ ../include/pop_strings.h ../include/version.h
+pop_cmd_dele.o: pop_cmd_dele.c ../include/teapop.h \
+ ../include/pop_cmds.h ../include/pop_socket.h \
+ ../include/pop_strings.h
+pop_cmd_last.o: pop_cmd_last.c ../include/teapop.h \
+ ../include/pop_cmds.h ../include/pop_socket.h \
+ ../include/pop_strings.h
+pop_cmd_list.o: pop_cmd_list.c ../include/teapop.h \
+ ../include/pop_cmds.h ../include/pop_socket.h \
+ ../include/pop_strings.h
+pop_cmd_noop.o: pop_cmd_noop.c ../include/teapop.h \
+ ../include/pop_cmds.h ../include/pop_socket.h \
+ ../include/pop_strings.h
+pop_cmd_retr.o: pop_cmd_retr.c ../include/teapop.h \
+ ../include/pop_cmds.h ../include/pop_dnld.h ../include/pop_socket.h \
+ ../include/pop_strings.h
+pop_cmd_rset.o: pop_cmd_rset.c ../include/teapop.h \
+ ../include/pop_cmds.h ../include/pop_socket.h \
+ ../include/pop_strings.h
+pop_cmd_stat.o: pop_cmd_stat.c ../include/teapop.h \
+ ../include/pop_cmds.h ../include/pop_socket.h \
+ ../include/pop_strings.h
+pop_cmd_top.o: pop_cmd_top.c ../include/teapop.h ../include/pop_cmds.h \
+ ../include/pop_dnld.h ../include/pop_socket.h \
+ ../include/pop_strings.h
+pop_cmd_uidl.o: pop_cmd_uidl.c ../include/teapop.h \
+ ../include/pop_cmds.h ../include/pop_socket.h \
+ ../include/pop_strings.h
+pop_dele.o: pop_dele.c ../config/config.h ../include/teapop.h \
+ ../include/pop_socket.h ../include/pop_strings.h
+pop_dnld.o: pop_dnld.c ../config/config.h ../include/teapop.h \
+ ../include/pop_socket.h ../include/pop_strings.h
+pop_file.o: pop_file.c ../config/config.h
+pop_hello.o: pop_hello.c ../config/config.h ../include/teapop.h \
+ ../include/version.h ../include/pop_strings.h ../include/pop_socket.h
+pop_lock.o: pop_lock.c ../config/config.h ../include/teapop.h
+pop_parse.o: pop_parse.c ../config/config.h ../include/teapop.h \
+ ../include/pop_cmds.h ../include/pop_dele.h ../include/pop_dnld.h \
+ ../include/pop_lock.h ../include/pop_socket.h ../include/pop_stat.h \
+ ../include/pop_strings.h
+pop_passwd.o: pop_passwd.c ../config/config.h ../include/teapop.h
+pop_popsmtp.o: pop_popsmtp.c ../config/config.h ../include/teapop.h \
+ ../include/pop_popsmtp.h
+pop_profil.o: pop_profil.c
+pop_signal.o: pop_signal.c ../config/config.h ../include/teapop.h \
+ ../include/pop_lock.h ../include/pop_signal.h
+pop_stat.o: pop_stat.c ../config/config.h ../include/teapop.h \
+ ../include/pop_socket.h ../include/pop_strings.h
+pop_strings.o: pop_strings.c ../config/config.h ../include/teapop.h \
+ ../include/pop_strings.h
+pop_socket.o: pop_socket.c ../config/config.h ../include/teapop.h \
+ ../include/pop_signal.h ../include/pop_socket.h \
+ ../include/pop_strings.h
+teapop.o: teapop.c ../config/config.h ../include/teapop.h \
+ ../include/version.h ../include/pop_auth.h ../include/pop_dele.h \
+ ../include/pop_file.h ../include/pop_lock.h ../include/pop_parse.h \
+ ../include/pop_passwd.h ../include/pop_popsmtp.h \
+ ../include/pop_signal.h ../include/pop_socket.h ../include/pop_stat.h \
+ ../include/pop_strings.h
+version.o: version.c ../config/config.h ../include/version.h

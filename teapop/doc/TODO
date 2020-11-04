@@ -1,0 +1,6 @@
+Things to implement before v1.00:
+=================================
+* Implement the nice "secure exclusive creat/lock", which works over NFS,
+  made by S.R. van den Berg.
+* Support for BerkeleyDB hashed password files
+* Per-gid bulletins w/ custom location for bulletin files

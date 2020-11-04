@@ -1,0 +1,137 @@
+/* $Id: //depot/Teapop/0.3/config/config.h.in#6 $ */
+
+/*
+ * Copyright (c) 1999-2001 ToonTown Consulting
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the company nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/* Do we have ANSI-C stuff? */
+#undef STDC_HEADERS
+
+/* Define if you have arc4random() */
+#undef HAVE_ARC4RANDOM
+
+/* Do we have MD5? */
+#undef HAVE_MD5_H
+
+/* Define if you have <crypt.h> */
+#undef HAVE_CRYPT_H
+
+/* Define if you have <shadow.h> */
+#undef HAVE_SHADOW_H
+
+/* Define if you have <unistd.h> */
+#undef HAVE_UNISTD_H
+
+/* Define if you have <sys/file.h> */
+#undef HAVE_SYS_FILE_H
+
+/* Define if you have <tcpd.h> */
+#undef HAVE_TCPD_H
+
+/* Allow the use of tcpd/tcpwrappers */
+#undef WITH_TCPD
+
+/* Support for IPv6 */
+#undef INET6
+
+/* Give __P() to ppl who don't have it */
+#undef NEED_P
+#ifdef NEED_P
+#ifdef STDC_HEADERS
+#define __P(proto) proto
+#else
+#define __P(proto)
+#endif
+#endif
+
+/* Define if you don't have socklen_t */
+#undef socklen_t
+
+/* Define if you don't have off_t */
+#undef off_t
+
+/* Where to put pidfile */
+#undef PIDDIR
+
+/* Where to find all mail */
+#undef HOMEDIRSPOOL
+#undef MAILBOX
+#undef MAILSPOOL
+
+/* Which locking method to use? */
+#undef FLOCK
+#undef FCNTL
+#undef LOCKF
+#undef DOTLOCK
+#if !defined(FLOCK) && !defined(FCNTL) && !defined(DOTLOCK) && !defined(LOCKF)
+#error "No locking method specified"
+#endif
+
+/* These need to be defined if system doesn't have them */
+#undef LOCK_SH
+#undef LOCK_EX
+#undef LOCK_NB
+#undef LOCK_UN
+#undef F_ULOCK
+#undef F_LOCK
+#undef F_TLOCK
+#undef F_TEST
+
+/* Use our own functions */
+#undef NEED_FLOCK
+
+/* The dividers to use */
+#undef DIVIDERS
+
+/* Define if you want to support APOP */
+#undef ALLOW_APOP
+
+/* Define if you want to support virtual domains */
+#undef VPOP
+
+/* Add support for following databases */
+#undef HAVE_PGSQL
+#undef HAVE_MYSQL
+#undef HAVE_ORACLE
+
+/* Add support for DRAC */
+#undef WITH_DRAC
+
+/* Add support for Whoson */
+#undef WITH_WHOSON
+
+/* Add support for popauth file */
+#undef WITH_POPAUTH_FILE
+#undef POPAUTH_FILE
+
+/* Add support for Java */
+#undef HAVE_JAVA
+#undef JAVA_AUTHCLASS
+
+/* Add support for LDAP */
+#undef HAVE_LDAP
+#undef LDAP_IS_OPENLDAP
+#undef LDAP_IS_NETSCAPE

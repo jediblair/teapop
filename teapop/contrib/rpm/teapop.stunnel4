@@ -1,0 +1,16 @@
+service teapop_stunnel4
+{
+	disable			= yes
+        type                    = UNLISTED
+# stunnel already uses libwrap
+	flags			= NOLIBWRAP
+	socket_type		= stream
+        protocol                = tcp
+	wait			= no
+	user			= root
+	server			= /usr/sbin/stunnel
+	server_args		= /etc/stunnel/teapop.conf
+	log_on_failure		+= USERID
+        port                    = 995
+}
+

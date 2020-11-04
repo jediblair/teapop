@@ -1,0 +1,53 @@
+These files are the samples to use java authentication with teapop.
+
+I have tested it with :
+   IBM Java2 1.3 from :
+      http://www-106.ibm.com/developerworks/java/jdk/linux130/
+   SUN SDK 1.4 from :
+      http://java.sun.com
+
+
+
+To enable java support you must use in configure script the option :
+    --with-java=DIR
+    where DIR is the directory where your java is installed
+    the files need is :
+       DIR/include/jni.h             (jni headers)
+       DIR/jre/bin/classic/libjvm.so (the java jvm)
+
+The default Authentication class is : TeapopAuth, but it can change with 
+--with-javaclass=CLASS in configure script.
+You can use "." or "/" as package separator
+eg. class : org.xyz.POPAuth must be specified as 
+            --with-javaclass=org.xyz.POPAuth
+                or
+            --with-javaclass=org/xyz/POPAuth
+
+
+The interface is easy_java which can be found at :
+	http://www.ivanfm.com/easy_java/
+
+----------------------------------------------------------------------------
+Sample files :
+
+User.java
+
+   Added: 2001-06-14   Updated: never
+   Author: Ivan F. Martinez <ivanfm@users.sourceforge.net>
+
+   Interface for user information
+
+SampleAuth.java
+
+   Added: 2001-06-14   Updated: never
+   Author: Ivan F. Martinez <ivanfm@users.sourceforge.net>
+
+   Sample Java Authentication using JDBC 
+
+Authentication.java
+
+   Added: 2001-06-14   Updated: never
+   Author: Ivan F. Martinez <ivanfm@users.sourceforge.net>
+
+   Interface for Authentication routines
+

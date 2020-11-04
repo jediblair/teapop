@@ -1,0 +1,49 @@
+prefix		= @prefix@
+localstatedir	= @localstatedir@
+exec_prefix	= @prefix@
+sbindir		= @sbindir@
+popauth_file	= @popauth_file@
+
+CHMOD    = @CHMOD@
+INSTALL  = @INSTALL@
+MV       = @MV@
+RM       = @RM@
+SED      = @SED@
+
+build:
+	@ echo Creating cronpopauth.pl;					\
+	${SED} -e 's%@_PERL@%@PERL@%g'					\
+	cronpopauth.pl.in						\
+	| ${SED} -e 's%@_localstatedir@%@localstatedir@%g'		\
+	| ${SED} -e 's%@_sbindir@%@sbindir@%g'				\
+	| ${SED} -e 's%@_popauth_file@%@popauth_file@%g'		\
+	> cronpopauth.pl ;						\
+	${CHMOD} 0755 cronpopauth.pl;					\
+
+install: build
+	@ echo Installing cronpopauth.pl;				\
+	${INSTALL} -d ${DESTDIR}/${sbindir};				\
+	${INSTALL} cronpopauth.pl ${DESTDIR}/${sbindir};		\
+
+makefile: ../config/timestamp
+	@ echo Updating Makefile
+	@ if [ -f Makefile.tmp ]; then					\
+		echo "Please remove Makefile.tmp";			\
+		false;							\
+	fi
+	@ ${MV} Makefile Makefile.tmp
+	@ ${SED} -e 's%^INSTALL *= *\.\..*%INSTALL  = ../config/install-sh -c%'\
+		Makefile.tmp > Makefile
+	@ ${RM} Makefile.tmp
+
+../config/timestamp:
+	@ echo Please run the configure script first
+	@ false
+
+depend:
+
+clean:
+	${RM} -f cronpopauth.pl
+
+distclean: clean
+	${RM} -f Makefile

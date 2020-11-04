@@ -1,0 +1,183 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.7 [en] (X11; I; Linux 2.2.12-20 i586) [Netscape]">
+   <title>Virtual Mail Accounts</title>
+</head>
+<body bgcolor="#FFFFFF">
+
+<h2>
+Setting up Virtual Mail Accounts</h2>
+<b>Purpose:</b> The purpose of this page is to explain how to set up Virtual
+email accounts on the mail server, and to explain the process involved.
+These instructions cover username setup, password setup, sendmail configuration,
+and pop server (teapop) configuration.
+<p><b>Procedure:</b>
+<blockquote><a href="#part1">Setting up the user accounts</a>
+<br><a href="#part2">Configuring sendmail</a>
+<br><a href="#part3">Configuring teapop</a></blockquote>
+<b>Theory:</b>
+<blockquote><a href="#theory">Overview of the virtual mail process</a></blockquote>
+<a NAME="part1"></a><u>Part 1: Setting up the user accounts.</u>
+<ul>
+<li>
+Think of a local username and password for the new virtual account</li>
+
+<br>Use the following formula: 8 lowercase letters first few letters of
+persons name + first part of company name.
+<br>eg, for john@acme.com, use johnacme.
+<br>&nbsp;
+<li>
+Verify that this name is unique, and doesn't appear in /etc/passwd.</li>
+
+<br>&nbsp;
+<li>
+think of a random-ish password for that account: eg j04n4CmE is ok, johnacme
+is not.</li>
+
+<br>&nbsp;
+<li>
+Create the user and account:</li>
+
+<br>useradd -c "Comment or fullname" -s SHELL [ -u userid -g groupid ]
+username
+<br>eg: useradd -c "John Smith, CEO" -s /bin/false johnacme
+<br>if you have multiple virtual users, they need the same userid and gid,
+otherwise ignore these fields.
+<br>&nbsp;
+<li>
+Set the password:</li>
+
+<br>passwd username
+<br>( and then enter the password you thought of above, as instructed )
+<br>&nbsp;
+<li>
+Convert the password file to shadow format, so that teapop can authenticate
+with PAM</li>
+
+<br>pwconv</ul>
+<a NAME="part2"></a><u>Part 2: Setting up Sendmail</u>
+<br>&nbsp;
+<ul>
+<li>
+Make an entry into sendmail.cw for the new virtual domain so that sendmail
+knows it is responsible for this domain:</li>
+
+<br>vi /etc/sendmail.cw
+<br>acme.com
+<br>:wq
+<br>&nbsp;
+<li>
+Modify the virtualusertable.txt file to map virtualuser to localuser:</li>
+
+<br>FILE FORMAT: virtualmailaddress&nbsp;&nbsp;&nbsp; localusername
+<br>eg:
+<br>john@acme.com johnacme
+<br>&nbsp;
+<li>
+Regenerate the virtusertable hash file:</li>
+
+<br>makemap -v hash /etc/mail/virtusertable &lt; /etc/mail/virtusertable.txt
+<br>&nbsp;
+<li>
+Modify the genericstable.txt so that outgoing messages look like they come
+from the virtualdomain:</li>
+
+<br>FILE FORMAT: localuser&nbsp; virtualmailaddress
+<br>vi /etc/mail/genericstable.txt
+<br>johnacme john@acme.com
+<br>:wq
+<br>&nbsp;
+<li>
+Regenerate the genericstable hash file:</li>
+
+<br>makemap -v hash /etc/mail/genericstable &lt; /etc/mail/genericstable.txt
+<br>&nbsp;
+<li>
+Put the virtual domain name into /etc/mail/relay-domains so that they can send
+mail</li>
+<br>&nbsp;
+<li>
+Put the virtual domain name into /etc/sendmail.cG 
+</li>&nbsp;
+<br>&nbsp;
+<li>
+Restart Sendmail so that the changes (particularly to sendmail.cw) take place
+</li>
+
+
+
+<br>&nbsp;
+<p>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;</ul>
+<a NAME="part3"></a><u>Part 3: Setting up Teapop</u>
+<br>&nbsp;
+<ul>
+<li>
+Put a line into /etc/teapop.passwd to handle mail ftom the virtual domain:</li>
+
+<br>&nbsp;
+<p>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<p>virtualdomain.com:ip-of-virtualdoomain:textfile::0:username:mail:/passwordfile:
+<br>eg:
+<br>acme.com:63.73.48.3:textfile::0:johnacme:mail:/usr/local/etc/acme.com.passwd
+<br>see the examples already in the file
+<li>
+Create a password file in /usr/local/etc/acme.com.passwd</li>
+
+<br>virtusername:password:/mailspoolfile
+<br>eg:
+<br>john:j04n4CmE:/var/spool/mail/johnacme</ul>
+And that is it! Test it by sending the new account an email, then change
+the settings on your outlook or netscape to that new account and receive
+that email. Remember that in outlook and netscape, the username for the
+pop account is the entire email address, and that in netscape, the username
+is user%virtualdomain ( teapop rewrites the % as an @ to get around netscapes
+habit of disposing of anything after an @ in a username ).
+<br>&nbsp;
+<table BORDER=2 CELLPADDING=0 WIDTH="100%" >
+<tr VALIGN=TOP>
+<td WIDTH="80%"><a NAME="theory"></a><b>Overview of the process: </b>Virtual
+mail on the mail server is a result of an interplay between the local user authentication
+system, the sendmail program, and the pop daemon. Each of these systems
+views the incoming mail request from a slightly different perspective.&nbsp;
+<p>When mail is sent to the mailserver, it is handled by sendmail, which first looks
+in the file sendmail.cw to see if the virtual domain is one for which sendmail
+is responsible. If it is, sendmail then looks at its hashed database file
+/etc/mail/virtusertable to find the name of the local user who corresponds
+to the virtual user. Sendmail then handles that mail, and passes it over
+to procmail, which writes the message to a file /var/spool/mail/$localuser.
+<p>Similarly, when a virtual user sends mail from this account, sendmail
+looks into the hash database file /etc/mail/genericstable for the local
+user , and rewrites the From field in the mail address so that it corresponds
+to the virtual user. Sendmail then checks the file /etc/relay-domains to
+see whether this virtual domain can send from the mailserver, and if so, the mail
+is sent. Throughout this process, the "real ID" of the user, from sendmails
+perspective, is some arbitrary local user, not the user whose name appears
+in user@virtualdomain. Some other agent must therefore control access to
+the local system as the virtual user and ensure that the virtual user is
+recognised and granted the access rights of the correct local user.
+<p>On the mailserver, the program teapop (by ibrahim khalifa) is used to manage
+access to the mail system. A users netscape, or outlook explorer connects
+to port 110 on daisy, and an instance of teapop is started. Teapop sends
+a greeting, and then waits for the username to be sent, in the format of
+user@virtualdomain . Teapop
+then requests a password and splits the username into virtualusername and
+virtual domain. Teapop looks for an entry for the virtual domain in /etc/teapop.passwd,
+and then reads a password file (/usr/local/etc/virtualdomain.passwd) to
+verify the password and see which local user the virtual user corresponds
+to. Teapop then authenticates the local user, and if all is ok, allows
+the access to the mail system as localuser.</td>
+</tr>
+</table>
+
+</body>
+</html>

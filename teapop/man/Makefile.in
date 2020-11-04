@@ -1,0 +1,45 @@
+# $Id: //depot/Teapop/0.3/man/Makefile.in#4 $
+#
+prefix		= @prefix@
+mandir		= @mandir@
+sysconfdir	= @sysconfdir@
+
+CHMOD    = @CHMOD@
+INSTALL  = @INSTALL@
+MV       = @MV@
+RM       = @RM@
+SED      = @SED@
+
+build:
+	@ echo Creating example teapop.8
+	@ ${SED} -e 's%@SYSCONFDIR@%${sysconfdir}%g'			\
+		 -e 's/@DATE@/"April, 2001"/'				\
+		teapop.8.in > teapop.8
+
+install: build
+	${INSTALL} -d ${DESTDIR}/${mandir}/man8;			\
+	${INSTALL} teapop.8 ${DESTDIR}/${mandir}/man8;			\
+	${CHMOD} 0755 ${DESTDIR}/${mandir}/man8/teapop.8;		\
+
+makefile: ../config/timestamp
+	@ echo Updating Makefile
+	@ if [ -f Makefile.tmp ]; then					\
+		echo "Please remove Makefile.tmp";			\
+		false;							\
+	fi
+	@ ${MV} Makefile Makefile.tmp
+	@ ${SED} -e 's%^INSTALL *= *\.\..*%INSTALL  = ../config/install-sh -c%'\
+		Makefile.tmp > Makefile
+	@ ${RM} Makefile.tmp
+
+../config/timestamp:
+	@ echo Please run the configure script first
+	@ false
+
+depend:
+
+clean:
+	${RM} -f teapop.8
+
+distclean: clean
+	${RM} -f Makefile

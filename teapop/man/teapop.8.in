@@ -1,0 +1,211 @@
+.\" $Id: //depot/Teapop/0.3/man/teapop.8.in#7 $
+.\" Copyright (c) 1999-2003 ToonTown Consulting
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\" 1. Redistributions of source code must retain the above copyright
+.\"     notice, this list of conditions and the following disclaimer.
+.\" 2. Redistributions in binary form must reproduce the above copyright
+.\"     notice, this list of conditions and the following disclaimer in the
+.\"    documentation and/or other materials provided with the distribution.
+.\" 3. Neither the name of the company nor the names of its contributors
+.\"    may be used to endorse or promote products derived from this software
+.\"    without specific prior written permission.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+.\" IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+.\" OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+.\" IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+.\" INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+.\" NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+.\" DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+.\" THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+.\" (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+.\"  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+.de Sp
+.if t .sp .5v
+.if n .sp
+..
+.de Ip
+.br
+.ie \\n(.$>=3 .ne \\$3
+.el .ne 3
+.IP "\\$1" \\$2
+..
+.de Vb
+.ft CW
+.nf
+.ne \\$1
+..
+.de Ve
+.ft R
+.fi
+..
+.TH TEAPOP 8 @DATE@
+.SH NAME
+teapop \(em
+a POP3 server daemon
+.SH SYNOPSIS
+.BI teapop
+.RB [ \-dDhiLnNsSuv ]
+.RB [ "\-e \fIage\fP" ]
+.RB [ "\-l \fIminutes\fP" ]
+.RB [ "\-p \fIhostname\fP" ]
+.RB [ "\-P \fIport\fP" ]
+.RB [ "\-t \fIseconds\fP" ]
+.SH DESCRIPTION
+.LP
+.BI Teapop
+is a pop3 mail program that allows remote clients to access mail.
+.PP
+.BI Teapop's
+main goal is to be as flexible as possible, but yet be secure and fast. The
+way virtual domains can be handled is somewhat unique for POP3-servers. You
+no longer have to choose one way to handle all your domains, rather you can
+configure how each domain will be handled separately.
+.SH OPTIONS
+.LP
+.TP
+.I "\fB\-d"
+Delete messages the user has read with the RETR command.
+.TP
+.I "\fB\-D"
+Delete messages the user has read with either the RETR or the TOP command.
+Only messages that have been fully downloaded with the TOP command will be
+deleted.
+.TP
+.I "\fB\-e\fP age"
+This will force messages older than
+.BI age
+to be removed, after a successful exit. Age can be a mixtures of the
+suffix units d(ays), w(eeks), m(onths) and y(ears). The value should
+always be before the suffix and don't use any space between values. For
+instance, the value 2w1m would delete all messages older then one month
+and two weeks, or 44 days.
+
+.BI NOTE:
+A message which is older then the expire age will be availble during the
+session, so no messages will be lost for the end user.
+.TP
+.I "\fB\-h"
+Syntax help.
+.TP
+.I "\fB\-i"
+Ignore the first message if it's UW IMAP's control message.
+.TP
+.I "\fB\-l\fP minutes"
+If a dotlock file exists that is older then the specified amount of
+minutes, it will be considered stale and removed. No attempt to try
+to find if the process that created the file is still running will be
+done. Be sure to specify an amount of minutes large enough to avoid
+valid dotlock files to be removed.
+.TP
+.I "\fB\-L"
+Activate the softlock function which will return an empty mailbox to
+the client, instead of an error message, when the mailbox is locked.
+.TP
+.I "\fB\-n"
+Don't do any kind of DNS-lookups.
+.BI Teapop
+normally try to verify the hostname from where the client is coming. This is
+however not wanted in all environments and the saved CPU-cycle is preferred.
+.TP
+.I "\fB-N"
+Don't resolve hostnames in teapop.passwd. If you use this switch you must
+specify the IP-address, but save CPU-cycles when you run
+.BI Teapop
+instead.
+.TP
+.I "\fB\-p\fP hostname"
+Directly after a user successfully authenticates, contact a DRAC server and
+report the users IP address. This will be done directly after a successful
+authentication and before opening the mailbox, so the IP can be reported even
+if the mailbox would be locked.
+
+Unless the flag
+.B \-\-with-drac
+has been specified at configure time, this switch will be silently ignored.
+
+For more information about Dynamic Relay Authorization Control see:
+
+  http://mail.cc.umanitoba.ca/drac/index.html
+.TP
+.I "\fB\-P\fP port"
+In standalone mode, listen on the specified port instead of the default 110.
+.TP
+.I "\fB\-s"
+Starts
+.BI Teapop
+in the background and makes it listen to port 110. Mostly known as standalone
+mode.
+.TP
+.I "\fB\-S"
+Compability mode for running over SSL tunnel. Will force
+.BI Teapop
+to identify as TeapopSSL to clients and log messages to syslog as
+teapop_ssl.
+.TP
+.I "\fB\-t\fP seconds"
+Changes the default timeout from 900 seconds to the number of seconds
+specified. This does only affect the time waiting for a command to be sent,
+and does not interfere with long downloads for instance. RFC1939 explicity
+states that this MUST be set to a value of 600 (10 mins) or higher.
+.TP
+.I "\fB\-u"
+Makes
+.BI Teapop
+look for X-UIDL: headers in the mail and if found use it for the UIDL
+reported to the client.
+
+.BI NOTE:
+This is not for the faint hearted. If you want to use this to save CPU-cycles,
+make sure you set your MTA to remove X-UIDL: headers on all incoming mail and
+then add a unique X-UIDL: header. If you don't know what all this mean, this
+option is NOT for you.
+.TP
+.I "\fB\-v"
+Show version.
+.SH FILES
+@SYSCONFDIR@/teapop.passwd
+holds information on where teapop can find the password for different
+users/domains
+.SH AUTHOR
+Much time has been put into trying to make
+.BI teapop
+the most flexible POP3-server available.
+.PP
+Main Author(s):
+.PP
+.Vb 1
+\&	Ibrahim 'Teaspoon' Khalifa
+\&	Magnus '__ms' Stahre
+.PP
+Some documentation by:
+.PP
+.Vb 1
+\&	Kitty 'Meow-Meow' Morgan
+.PP
+.SH SEE ALSO
+inetd(8),
+syslogd(8),
+RFC1939
+.SH BUGS
+When running with the dotlock-method of locking a users mailbox,
+.BI teapop
+will drop root privs before creating the lockfile. Therefore the user must have
+write access to the directory the user's mailbox is in. If this isn't feasable,
+use flock()-method instead.
+.PP
+Neither mbox or POP3 handles multiple concurrent sessions well, a worst case
+scenario could actually involve corrupt mailboxes.
+.BI Teapop
+does its' utmost to lock the file from other processes to avoid any problems,
+but to ensure that no unwanted problems occurs, please make sure you use the
+same locking method in both
+.BI teapop
+and your MTA (sendmail/qmail/postfix/etc).
+.SH SECURITY
+.BI Teapop
+drops root privs after a valid user/pass or apop command
+

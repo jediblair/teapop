@@ -1,0 +1,57 @@
+#!@_PERL@ -w
+#
+# Stephan Uhlmann <su@su2.info>
+#
+# Removes expired IP addresses from the popauth file
+# Execute it regularly via cron. At best in the same interval
+# as as you set the expire time.
+# example crontab entry:
+# */5 * * * * @_sbindir@/cronpopauth.pl
+
+
+# expiretime: the time after which an IP expires
+# unit: minutes 
+# default: 5
+
+$expiretime = 5;
+
+
+$popauth_file ="@_popauth_file@";
+
+if ($popauth_file ne "no")
+{
+ if ($popauth_file eq "yes")
+  { $popauthfile = "@_localstatedir@/popauth"; }
+ else
+  { $popauthfile = $popauth_file; }
+
+ $popauthtempfile = "@_localstatedir@/.popauth.tmp";
+
+ $datafile = "@_localstatedir@/popauth.dat";
+ $datatempfile = "@_localstatedir@/.popauth.dat.tmp";
+
+
+ open(POPAUTHTEMPFILE,">$popauthtempfile") or die "Error opening temorary popauth file $popauthtempfile for writing";
+ open(DATAFILE,"<$datafile") or die "Error opening popauth data file $datafile for reading";
+ open(DATATEMPFILE,">$datatempfile") or die "Error opening temorary popauth data file $datatempfile for writing";
+
+ while (<DATAFILE>)
+ {
+  /([0-9.]*):([0-9]*)/;			# $1 = ipaddress, $2 = timestamp
+
+  if ( time() < ($2+$expiretime*60))
+  {
+   print DATATEMPFILE "$1:$2\n";
+   print POPAUTHTEMPFILE "$1\n";
+  }
+ }
+
+ close(DATAFILE);
+ close(DATATEMPFILE);
+ close(POPAUTHTEMPFILE);
+
+ rename($datatempfile, $datafile);
+ rename($popauthtempfile, $popauthfile);
+
+}
+

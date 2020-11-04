@@ -1,0 +1,89 @@
+*** pop_maildir.c	Sat Jun 30 23:52:40 2001
+--- pop_maildir.c.im	Sun Jul  1 12:05:13 2001
+*************** char *fname;
+*** 179,184 ****
+--- 179,251 ----
+  	return 0;
+  }
+  
++ #ifdef INETMAIL_CONVERSION
++ void
++ inetmail_convert(minfo, pinfo)
++ MAILDIR_INFO *minfo;
++ POP_INFO *pinfo;
++ {
++ 	DIR *dirp;
++ 	struct dirent *dp;
++ /** 
++ Percebi um problema qdo existe arquivo novo aqui ele encontra e move mas
++ soh aparece a nova msg na conexao seguinte, parece algum tipo de buffer do linux
++ **/
++ 	char renbuffer[128];
++ 
++ 	/*
++ 	 * Create diretories to store messages (Maildir structure)
++ 	 * if tmp does not exist create the 3 directories 
++ 	 */
++ 	if (mkdir("tmp", S_IRWXU || S_IRWXG) == 0) {
++ 		mkdir("new", S_IRWXU || S_IRWXG);
++ 		mkdir("cur", S_IRWXU || S_IRWXG);
++ 	}
++ 
++ 	/** Remove Inet.Mail control files **/
++ 	unlink("MailLock");
++ 	unlink("mailbox.idx");
++ 
++ 	/** Check for messages received by Inet.Mail **/
++ 	dirp = opendir(".");
++ 	if (dirp != NULL) {
++ 		while ((dp = readdir(dirp)) != NULL) {
++ /** check if is a inet.mail message file (start with number) **/
++ 			if ((dp->d_name[0] >= '0') && (dp->d_name[0] <= '9')) {
++ 				/*
++ 				 * Because the mailbox is locked this is a unique
++ 				 * name (time,hostname,pid,msgcount, originalname 
++ 				 */
++ 				snprintf(renbuffer, sizeof(renbuffer),
++ 				    "new/%d.%s.%d.%3.3d.%s.teapop",
++ 				    time(NULL),
++ 				    minfo->hostname,
++ 				    minfo->pid, minfo->msgcount, dp->d_name);
++ 				if (rename(dp->d_name, renbuffer) == 0) {
++ 					add_maildir_message(minfo,pinfo,
++ 					    "new/",&renbuffer[4]);
++ /*
++ 					syslog(LOG_ERR,
++ 					    "moving inet.mail file : %s : %s",
++ 					    dp->d_name, renbuffer);
++ */
++ 
++ 				} else {
++ 					syslog(LOG_ERR,
++ 					    "error moving inet.mail file : %s : %s : %d",
++ 					    dp->d_name, renbuffer,errno);
++ 				}
++ 
++ 			}
++ 		}
++ 		(void) closedir(dirp);
++ 	} else {
++ 		syslog(LOG_ERR, "Error reading user base directory");
++ 	}
++ }
++ 
++ #endif /** INETMAIL_CONVERSION **/
++ 
+  int
+  pop_maildir_get_status(pinfo)
+  POP_INFO *pinfo;
+*************** POP_INFO *pinfo;
+*** 234,238 ****
+--- 301,308 ----
+  		}
+  		(void) closedir(dirp);
+  	}
++ #ifdef INETMAIL_CONVERSION
++ 	inetmail_convert(&minfo, pinfo);
++ #endif /** INETMAIL_CONVERSION **/
+  	return 0;
+  }

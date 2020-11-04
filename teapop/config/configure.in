@@ -1,0 +1,548 @@
+dnl $Id: //depot/Teapop/0.3/config/configure.in#10 $
+dnl
+dnl Process this file with autoconf to produce a configure script.
+dnl
+dnl Copyright (C) 1999-2001, ToonTown Consulting
+dnl
+
+AC_INIT(../teapop/teapop.c)
+AC_CONFIG_AUX_DIR(.)
+AC_CONFIG_HEADER(config.h)
+
+dnl Checks for host type
+AC_CANONICAL_HOST
+
+dnl Checks for programs.
+AC_PROG_CC
+AC_PROG_MAKE_SET
+AC_PROG_INSTALL
+AC_PATH_PROGS(CHMOD, chmod, /bin/chmod)
+AC_PATH_PROGS(MV, mv, /bin/mv)
+AC_PATH_PROGS(RM, rm, /bin/rm)
+AC_PATH_PROGS(SED, sed, /bin/rm)
+AC_PATH_PROGS(STRIP, strip, nostrip)
+AC_PATH_PROGS(PERL, perl, /usr/bin/perl)
+
+dnl Checks important for stuff
+dnl Some OSes need /usr/ucbinlude and /usr/ucblib
+
+dnl Where do we put pid file?
+AC_MSG_CHECKING([for piddir])
+AC_ARG_ENABLE(piddir, [  --enable-piddir=DIR     put pid-file in DIR rather then in /var/run], pop_piddir="$enableval", pop_piddir="/var/run")
+if test $pop_piddir = "no"; then
+	AC_MSG_RESULT([disabled])
+elif test -d $pop_piddir; then
+	AC_DEFINE_UNQUOTED(PIDDIR, "$pop_piddir")
+	AC_MSG_RESULT([$pop_piddir])
+else
+	AC_MSG_ERROR([NOT FOUND ($pop_piddir)])
+fi
+
+dnl Where is the mail?
+AC_MSG_CHECKING([where mail is])
+AC_ARG_ENABLE(homespool, [  --enable-homespool=MAILBOX
+                          user's mailboxes, called MAILBOX, are in their homedir], pop_homespool="$enableval", pop_homespool="nope")
+if test $pop_homespool != "nope"; then
+	if test $pop_homespool = "yes"; then
+		AC_MSG_ERROR([You must specify the mailbox name for homespool])
+	fi
+	AC_DEFINE(HOMEDIRSPOOL)
+	AC_DEFINE_UNQUOTED(MAILBOX, "$pop_homespool")
+	AC_MSG_RESULT([~/$pop_homespool])
+else
+	AC_ARG_ENABLE(mailspool, [  --enable-mailspool=DIR  where all mailspools are located], pop_mailspool="$enableval", pop_mailspool="nope")
+	if test $pop_mailspool = "nope"; then
+		if test -d /var/mail; then
+			pop_mailspool="/var/mail"
+		elif test -d /var/spool/mail; then
+			pop_mailspool="/var/spool/mail"
+		else
+			AC_MSG_ERROR([Can't find your mailspool; please use --enable-mailspool=DIR])
+		fi
+	fi
+	AC_DEFINE_UNQUOTED(MAILSPOOL, "$pop_mailspool")
+	AC_MSG_RESULT([$pop_mailspool])
+fi
+AC_SUBST(pop_mailspool)
+AC_SUBST(pop_homespool)
+
+dnl How to lock file
+AC_MSG_CHECKING([which locking method to use])
+AC_ARG_ENABLE(lock, [  --enable-lock           prefered locking method, flock (default), fcntl, lockf, dotlock or a mix of several separated with comma], pop_lock="$enableval", pop_lock="flock")
+
+echo $pop_lock | sed -e "s/,/\\
+/g" | while read line;
+do
+	if test x"$line" = x"dotlock"; then
+		AC_DEFINE(DOTLOCK)
+	else
+		if test x"$line" = x"fcntl"; then
+			AC_DEFINE(FCNTL)
+		else
+			if test x"$line" = x"flock"; then
+				AC_DEFINE(FLOCK)
+			else
+				if test x"$line" = x"lockf"; then
+					AC_DEFINE(LOCKF)
+				else
+					if test x"$line" = x""; then
+						:;
+					else
+						AC_ERROR([unknown method: $line])
+					fi
+				fi
+			fi
+		fi
+	fi
+done
+
+if test $? -gt 0; then
+	exit 1
+fi
+
+if test x"$foundlock" = x"0"; then
+	AC_ERROR([you must specify a method])
+else
+	AC_MSG_RESULT([$pop_lock])
+fi
+
+dnl Disable APOP?
+AC_MSG_CHECKING([if APOP should be allowed])
+AC_ARG_ENABLE(apop, [  --disable-apop          don't allow users to authenticate with APOP], pop_apop="$enableval", pop_apop="yes")
+if test $pop_apop = "no"; then
+	AC_MSG_RESULT([no])
+else
+	AC_DEFINE(ALLOW_APOP)
+	AC_MSG_RESULT([yes])
+fi
+
+dnl Disable VPOP?
+AC_MSG_CHECKING([if virtual domain support should be added])
+AC_ARG_ENABLE(vpop, [  --disable-vpop          don't support virtual domains], pop_vpop="$enableval", pop_vpop="yes")
+if test $pop_vpop = "no"; then
+	AC_MSG_RESULT([no])
+else
+	AC_DEFINE(VPOP)
+	AC_MSG_RESULT([yes])
+fi
+
+dnl Any dividers except @?
+if test $pop_vpop != "no"; then
+	AC_MSG_CHECKING([for dividers to use])
+	AC_ARG_ENABLE(extra-dividers, [  --enable-extra-dividers=CHARS
+                          make CHARS work as divider as well as the @-sign (default is %)], 
+			      if test "$enableval" = "yes"; then
+			          pop_dividers="@%"
+			      else
+			          pop_dividers="@${enableval}"
+			      fi,
+			      pop_dividers="@%")
+	AC_DEFINE_UNQUOTED(DIVIDERS, "${pop_dividers}")
+	AC_MSG_RESULT([${pop_dividers}])
+fi
+
+dnl Enable IPv6 support?
+AC_MSG_CHECKING([if IPv6 support is wanted])
+AC_ARG_ENABLE(ipv6, [  --enable-ipv6           enable IPv6], ipv6="$enableval", ipv6="no")
+if test $ipv6 = "no"; then
+	AC_MSG_RESULT([no])
+else
+	AC_DEFINE(INET6)
+	AC_MSG_RESULT([yes])
+fi
+
+dnl Do we have __P() in <sys/types.h>?
+AC_CACHE_CHECK([if __P() is defined in <sys/types.h>], pop_cv_have_p,
+    [AC_TRY_COMPILE([#include <sys/types.h>],
+        [int sub __P((void));
+
+        int
+        sub(void)
+        {
+        	return 0;
+        }],
+        pop_cv_have_p=yes, pop_cv_have_p=no)])
+
+if test $pop_cv_have_p = "no"; then
+	AC_DEFINE(NEED_P)
+fi
+
+dnl Does the user have socklen_t defined?
+AC_CACHE_CHECK([if socklen_t is defined], pop_cv_have_socklen_t,
+    [AC_TRY_COMPILE([#include <sys/types.h>
+        #include <sys/socket.h>],
+        [socklen_t sock],
+        pop_cv_have_socklen_t=yes, pop_cv_have_socklen_t=no)])
+
+if test $pop_cv_have_socklen_t = "no"; then
+	AC_DEFINE(socklen_t, int)
+fi
+
+dnl Does the user have off_t defined?
+AC_CACHE_CHECK([if off_t is defined], pop_cv_have_off_t,
+    [AC_TRY_COMPILE([#include <sys/types.h>
+	#include <stdio.h>
+	#include <unistd.h>],
+        [off_t slask],
+        pop_cv_have_off_t=yes, pop_cv_have_off_t=no)])
+
+if test $pop_cv_have_off_t = "no"; then
+	AC_DEFINE(off_t, long long)
+fi
+
+AC_SUBST(O_DEFS)
+AC_SUBST(DEFS)
+
+dnl With tcpd?
+AC_MSG_CHECKING([if tcpd/tcpwrapper should be built])
+AC_ARG_WITH(tcpd, [  --with-tcpd             build with support for tcpd/tcpwrapper], tcpd="$withval", tcpd="no")
+if test $tcpd = "no"; then
+	AC_MSG_RESULT([no])
+else
+	AC_DEFINE(WITH_TCPD)
+	AC_MSG_RESULT([yes])
+
+	AC_CHECK_LIB(wrap, main, LIBS="$LIBS -lwrap")
+fi
+
+dnl PostgreSQL support?
+AC_MSG_CHECKING(for PostgreSQL support)
+AC_ARG_WITH(pgsql, [  --with-pgsql[=DIR]      enable support for authentication from PostgreSQL database], db_pgsql="$withval", db_pgsql="no")
+if test "$db_pgsql" = "no"; then
+	AC_MSG_RESULT([no])
+else
+	if test "$db_pgsql" = "yes"; then
+		db_pgsql=/usr/local
+	fi
+	test -f $db_pgsql/include/libpq-fe.h && pgsql_cflags=$db_pgsql/include
+	test -f $db_pgsql/pgsql/include/libpq-fe.h && pgsql_cflags=$db_pgsql/pgsql/include
+	test -f $db_pgsql/include/pgsql/libpq-fe.h && pgsql_cflags=$db_pgsql/include/pgsql
+	test -f $db_pgsql/include/postgresql/libpq-fe.h && pgsql_cflags=$db_pgsql/include/postgresql
+	if test "$pgsql_cflags" = ""; then
+		AC_MSG_ERROR([can't find PostgreSQL include directory])
+	fi
+	test -f $db_pgsql/lib/libpq.a && pgsql_ldflags=$db_pgsql/lib
+	test -f $db_pgsql/pgsql/lib/libpq.a && pgsql_ldflags=$db_pgsql/pgsql/lib
+	test -f $db_pgsql/lib/pgsql/libpq.a && pgsql_ldflags=$db_pgsql/lib/pgsql
+	if test "$pgsql_ldflags" = ""; then
+		AC_MSG_ERROR([can't find PostgreSQL library directory])
+	fi
+	CFLAGS="$CFLAGS -I$pgsql_cflags"
+	LDFLAGS="$LDFLAGS -L$pgsql_ldflags"
+	LIBS="$LIBS -lpq"
+	AC_DEFINE(HAVE_PGSQL)
+	ADD_PGSQL="pop_pgsql.o"
+	AC_MSG_RESULT([yes])
+fi
+AC_SUBST(ADD_PGSQL)
+
+dnl MySQL support?
+AC_MSG_CHECKING(for MySQL support)
+AC_ARG_WITH(mysql, [  --with-mysql[=DIR]      enable support for authentication from MySQL database], db_mysql="$withval", db_mysql="no")
+if test "$db_mysql" = "no"; then
+	AC_MSG_RESULT([no])
+	ADD_MYSQL="         "
+else
+	if test "$db_mysql" = "yes"; then
+		db_mysql=/usr/local
+	fi
+	test -f $db_mysql/include/mysql.h && mysql_cflags=$db_mysql/include
+	test -f $db_mysql/mysql/include/mysql.h && mysql_cflags=$db_mysql/mysql/include
+	test -f $db_mysql/include/mysql/mysql.h && mysql_cflags=$db_mysql/include/mysql
+	if test "$mysql_cflags" = ""; then
+		AC_MSG_ERROR([can't find MySQL include directory])
+	fi
+	test -f $db_mysql/lib/libmysqlclient.a && mysql_ldflags=$db_mysql/lib
+	test -f $db_mysql/mysql/lib/libmysqlclient.a && mysql_ldflags=$db_mysql/mysql/lib
+	test -f $db_mysql/lib/mysql/libmysqlclient.a && mysql_ldflags=$db_mysql/lib/mysql
+	if test "$mysql_ldflags" = ""; then
+		AC_MSG_ERROR([can't find MySQL library directory])
+	fi
+	CFLAGS="$CFLAGS -I$mysql_cflags"
+	LDFLAGS="$LDFLAGS -L$mysql_ldflags"
+	LIBS="$LIBS -lmysqlclient"
+	AC_DEFINE(HAVE_MYSQL)
+	ADD_MYSQL="pop_mysql.o"
+	AC_MSG_RESULT([yes])
+fi
+AC_SUBST(ADD_MYSQL)
+
+dnl With DRAC support?
+AC_MSG_CHECKING(for DRAC support)
+AC_ARG_WITH(drac, [  --with-drac[=LIBDIR]    enable support for DRAC], drac="$withval", drac="no")
+if test "$drac" = "no"; then
+	ADD_DRAC="        "
+	AC_MSG_RESULT([no])
+else
+	test -f /usr/lib/libdrac.a && drac_ldflags=/usr/lib
+	test -f /usr/local/lib/libdrac.a && drac_ldflags=/usr/local/lib
+	test -f $drac/libdrac.a && drac_ldflags=$drac
+
+	if test "$drac_ldflags" = ""; then
+		AC_MSG_ERROR([can't find libdrac.a])
+	fi
+	LDFLAGS="$LDFLAGS -L$drac_ldflags"
+	LIBS="$LIBS -ldrac"
+	AC_DEFINE(WITH_DRAC)
+	ADD_DRAC="pop_popsmtp_drac.o"
+	AC_MSG_RESULT([yes])
+fi
+AC_SUBST(ADD_DRAC)
+
+dnl With special include dir for DRAC?
+AC_MSG_CHECKING(for DRAC includefile)
+AC_ARG_WITH(dracinc, [  --with-dracinc=DIR      if the drac.h file is not in the same directory as the library], dracinc="$withval", dracinc="no")
+if test "$drac" = "no"; then
+	AC_MSG_RESULT([n/a])
+else
+	test -f /usr/include/drac.h && drac_cflags=/usr/include
+	test -f /usr/local/include/drac.h && drac_cflags=/usr/local/include
+	test -f $drac/drac.h && drac_cflags=$drac
+	test -f $dracinc/drac.h && drac_cflags=$dracinc
+	if test "$drac_cflags" = ""; then
+		AC_MSG_ERROR([can't find drac.h])
+	fi
+	CFLAGS="$CFLAGS -I$drac_cflags"
+	AC_MSG_RESULT([$drac_cflags/drac.h])
+fi
+
+dnl With Whoson support?
+AC_MSG_CHECKING(for Whoson support)
+AC_ARG_WITH(whoson, [  --with-whoson[=LIBDIR]  enable support for Whoson], whoson="$withval", whoson="no")
+if test "$whoson" = "no"; then
+	ADD_WHOSON="          "
+	AC_MSG_RESULT([no])
+else
+	test -f /usr/lib/libwhoson.a && whoson_ldflags=/usr/lib
+	test -f /usr/local/lib/libwhoson.a && whoson_ldflags=/usr/local/lib
+	test -f $whoson/libwhoson.a && whoson_ldflags=$whoson
+
+	if test "$whoson_ldflags" = ""; then
+		AC_MSG_ERROR([can't find libwhoson.a])
+	fi
+	LDFLAGS="$LDFLAGS -L$whoson_ldflags"
+	LIBS="$LIBS -lwhoson"
+	AC_DEFINE(WITH_WHOSON)
+	ADD_WHOSON="pop_popsmtp_whoson.o"
+	AC_MSG_RESULT([yes])
+fi
+AC_SUBST(ADD_WHOSON)
+
+AC_MSG_CHECKING(for Whoson includefile)
+AC_ARG_WITH(whosoninc, [  --with-whosoninc=DIR    if the whoson.h file is not in the same directory as the library], whosoninc="$withval", whosoninc="no")
+if test "$whoson" = "no"; then
+	AC_MSG_RESULT([n/a])
+else
+	test -f /usr/include/whoson.h && whoson_cflags=/usr/include
+	test -f /usr/local/include/whoson.h && whoson_cflags=/usr/local/include
+	test -f $whoson/whoson.h && whoson_cflags=$whoson
+	test -f $whosoninc/whoson.h && whoson_cflags=$whosoninc
+	if test "$whoson_cflags" = ""; then
+		AC_MSG_ERROR([can't find whoson.h])
+	fi
+	CFLAGS="$CFLAGS -I$whoson_cflags"
+	AC_MSG_RESULT([$whoson_cflags/whoson.h])
+fi
+
+
+dnl With popauth file support?
+AC_MSG_CHECKING(for popauth file support)
+AC_ARG_ENABLE(popauth_file, [  --enable-popauth-file[=FILE]
+                          enable support for a popauth file], popauth_file="$enableval", popauth_file="no")
+if test "$popauth_file" = "no"; then
+	ADD_POPAUTH_FILE="          "
+	AC_MSG_RESULT([no])
+else
+	if test "$popauth_file" = "yes"; then
+		AC_MSG_RESULT([yes])
+	else
+		AC_MSG_RESULT([${popauth_file}])
+		AC_DEFINE_UNQUOTED(POPAUTH_FILE,"${popauth_file}")
+	fi
+		AC_DEFINE(WITH_POPAUTH_FILE)
+		ADD_POPAUTH_FILE="pop_popsmtp_file.o"
+fi
+AC_SUBST(ADD_POPAUTH_FILE)
+AC_SUBST(popauth_file)
+
+
+dnl With Java support?
+dnl Tested with IBM JVM 1.3 and SUN JVM 1.4  on Linux
+AC_MSG_CHECKING(for Java support)
+AC_ARG_WITH(java, [  --with-java=DIR         enable support for Java], java="$withval", java="no")
+if test "$java" = "no"; then
+	ADD_JAVA="          "
+	AC_MSG_RESULT([no])
+else
+        if ! test -f $java/include/jni.h ; then
+		AC_MSG_ERROR([can't find jni.h])
+        fi
+ 	test -f $java/jre/bin/classic/libjvm.so && java_libs=$java/jre/bin/classic/libjvm.so
+ 	test -f $java/jre/lib/i386/server/libjvm.so && java_libs=$java/jre/lib/i386/server/libjvm.so
+ 	test -f $java/jre/lib/i386/client/libjvm.so && java_libs=$java/jre/lib/i386/client/libjvm.so
+	if test "$java_libs" = ""; then
+		AC_MSG_ERROR([can't find libjvm.so])
+	fi
+	LDFLAGS="$LDFLAGS "
+	LIBS="$LIBS $java_libs"
+	CFLAGS="$CFLAGS -I$java/include"
+        if test -d $java/include/linux; then
+		CFLAGS="$CFLAGS -I$java/include/linux"
+        fi
+	AC_DEFINE(HAVE_JAVA)
+	ADD_JAVA="pop_java.o easy_java.o"
+	AC_MSG_RESULT([yes])
+fi
+AC_SUBST(ADD_JAVA)
+
+dnl Java Authentication class
+AC_MSG_CHECKING([for java authentication class])
+AC_ARG_WITH(javaclass, [  --with-javaclass=CLASS  put class to authenticate],javaclass="$withval", javaclass="TeapopAuth")
+AC_DEFINE_UNQUOTED(JAVA_AUTHCLASS, "$javaclass")
+AC_MSG_RESULT([$javaclass])
+
+dnl LDAP authentication support
+AC_MSG_CHECKING([for LDAP authentication support])
+AC_ARG_WITH(ldap,     [  --with-ldap=openldap    add support for authentication through OpenLDAP server], ldapauth="$withval", ldapauth="no")
+if test "$ldapauth" = "no"; then
+	ADD_LDAP="          "
+	AC_MSG_RESULT([no])
+else
+	if test "$ldapauth" = "openldap"; then
+		AC_DEFINE(HAVE_LDAP)
+		ADD_LDAP="pop_ldap.o"
+		AC_MSG_RESULT([OpenLDAP])
+	else
+		AC_MSG_ERROR([Unknown LDAP type])
+	fi
+fi
+AC_SUBST(ADD_LDAP)
+
+dnl LDAP include file
+AC_MSG_CHECKING([for LDAP include file])
+AC_ARG_WITH(ldapinc, [  --with-ldapinc=DIR      directory LDAP include files can be found], ldapinc="$withval", ldapinc="no")
+if test "$ldapauth" = "no"; then
+	AC_MSG_RESULT([n/a])
+else
+        case $ldapauth in
+	openldap)
+		test -f /usr/include/ldap.h && ldap_cflags=/usr/include
+		test -f /usr/local/include/ldap.h && ldap_cflags=/usr/local/include
+		test -f $ldapinc/ldap.h && ldap_cflags=$ldapinc
+		;;
+	esac
+
+	if test "$ldap_cflags" = ""; then
+		AC_MSG_ERROR([can't find ldap.h])
+	fi
+	CFLAGS="$CFLAGS -I$ldap_cflags"
+	AC_MSG_RESULT([$ldap_cflags])
+fi
+
+dnl LDAP library path
+AC_MSG_CHECKING([for LDAP libraries])
+AC_ARG_WITH(ldaplib, [  --with-ldaplib=DIR      directory LDAP libraries can be found in], ldaplib="$withval", ldaplib="no")
+if test "$ldapauth" = "no"; then
+	AC_MSG_RESULT([n/a])
+else
+	case $ldapauth in
+	openldap)
+		test -f /usr/lib/libldap.so && ldap_ldflags=/usr/lib
+		test -f /usr/local/lib/libldap.so && ldap_ldflags=/usr/local/lib
+		test -f $ldaplib/libldap.so && ldap_ldflags=$ldaplib
+		LIBS="$LIBS -lldap -llber"
+		;;
+	esac
+
+	if test "$ldap_ldflags" = ""; then
+		AC_MSG_ERROR([can't find LDAP libraries])
+	fi
+	LDFLAGS="$LDFLAGS -L$ldap_ldflags"
+	AC_MSG_RESULT([$ldap_ldflags])
+fi
+
+dnl Checks for libraries.
+AC_CHECK_LIB(crypt, crypt, LIBS="$LIBS -lcrypt")
+AC_CHECK_LIB(socket, socket, LIBS="$LIBS -lsocket")
+AC_CHECK_LIB(nsl, gethostent, LIBS="$LIBS -lnsl")
+AC_CHECK_LIB(ucb, flock, LIBS="$LIBS -lucb")
+AC_CHECK_LIB(sec, getspnam, LIBS="$LIBS -lsec")
+AC_CHECK_LIB(md, MD5Init, LIBS="$LIBS -lmd")
+AC_CHECK_LIB(md5, MD5Init, LIBS="$LIBS -lmd5")
+AC_CHECK_LIB(bsd, flock, LIBS="$LIBS -lbsd")
+AC_SUBST(LIBS)
+
+dnl Checks for header files.
+AC_CHECK_HEADERS(crypt.h md5.h shadow.h tcpd.h unistd.h sys/file.h)
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_HEADER_STDC()
+
+dnl Checks for library functions.
+AC_CHECK_FUNCS(arc4random)
+AC_CHECK_FUNC(flock, pop_cv_have_flock="yes", pop_cv_have_flock="no")
+if test "$pop_cv_have_flock" = "no"; then
+	ADD_FLOCK="flock.o"
+	AC_DEFINE(NEED_FLOCK)
+else
+	ADD_FLOCK="       "
+fi
+AC_SUBST(ADD_FLOCK)
+AC_CHECK_FUNC(lockf, pop_cv_have_lockf="yes", pop_cv_have_lockf="no")
+if test "$pop_cv_have_lockf" = "no"; then
+	ADD_LOCKF="lockf.o"
+else
+	ADD_LOCKF="       "
+fi
+AC_SUBST(ADD_LOCKF)
+
+dnl Check if we should use system functions or provided once
+AC_CACHE_CHECK([if system md5 works for us], pop_cv_have_native_md5,
+    [AC_TRY_COMPILE([#include <sys/types.h>
+        #include <md5.h>],
+        [MD5_CTX ctx], pop_cv_have_native_md5=yes, pop_cv_have_native_md5=no)])
+
+if test "$pop_cv_have_native_md5" = "no"; then
+	ADD_MD5="md5c.o"
+else
+	ADD_MD5="      "
+fi
+AC_SUBST(ADD_MD5)
+
+dnl Check if we need to define LOCK_*
+AC_CACHE_CHECK([if LOCK_* is defined], pop_cv_have_lock,
+    [AC_TRY_COMPILE([#include <sys/file.h>
+	#include <fcntl.h>
+	#include <unistd.h>],
+	[int i = LOCK_EX], pop_cv_have_lock=yes, pop_cv_have_lock=no)])
+
+if test "$pop_cv_have_lock" = "no"; then
+	AC_DEFINE(LOCK_SH, 1)
+	AC_DEFINE(LOCK_EX, 2)
+	AC_DEFINE(LOCK_NB, 4)
+	AC_DEFINE(LOCK_UN, 8)
+fi
+
+dnl Check if we need to define F_*LOCK/F_TEST
+AC_CACHE_CHECK([if F_*LOCK is defined], pop_cv_have_f_lock,
+    [AC_TRY_COMPILE([#include <sys/file.h>
+	#include <fcntl.h>
+	#include <unistd.h>],
+	[int i = F_TLOCK], pop_cv_have_f_lock=yes, pop_cv_have_f_lock=no)])
+
+if test "$pop_cv_have_f_lock" = "no"; then
+	AC_DEFINE(F_ULOCK, 0)
+	AC_DEFINE(F_LOCK, 1)
+	AC_DEFINE(F_TLOCK, 2)
+	AC_DEFINE(F_TEST, 3)
+fi
+
+dnl Special stuff needed for Mac OS X
+dnl OS X 10.1 (darwin 1.4) needs -flat_namespace
+if test "$host" = "powerpc-apple-darwin1.4"; then
+	LDFLAGS="$LDFLAGS -flat_namespace"
+fi
+
+AC_SUBST(O_DEFS)
+AC_SUBST(DEFS)
+AC_OUTPUT(./Makefile ../Makefile ../bin/Makefile ../etc/Makefile ../man/Makefile ../teapop/Makefile, [echo "do not remove this file" >timestamp; (cd ../bin && make makefile); (cd ../etc && make makefile); (cd ../man && make makefile); (cd ../teapop && make makefile);])

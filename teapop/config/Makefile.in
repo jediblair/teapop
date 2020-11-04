@@ -1,0 +1,20 @@
+# $Id: //depot/Teapop/0.3/config/Makefile.in#3 $
+
+RM	= @RM@
+
+all: build
+
+build:
+
+install:
+
+makefile:
+
+depend:
+
+clean:
+
+distclean: clean
+	${RM} -f Makefile config.cache config.h config.log config.status
+	${RM} -f timestamp
+

@@ -1,0 +1,75 @@
+$Id: //depot/Teapop/0.3/contrib/cryptpass.diff#1 $
+
+This patch is for advanced users only. It's not currently supported and will
+not be incorporated in the offical release, in the current form. A new
+authentication-method, based on this idea, might however be added in the
+future.
+
+What it does is change the way the textfile-method works. Today teapop expects
+the password found in the specified password file to be in clear text. With
+this patch teapop will expect the password to be encrypted with the system
+routine crypt(3), instead. Since this is a one way encryption, APOP will
+*NOT* work for the users in the password file.
+
+I leave it up to the reader to figure out how to actually encrypt the password
+before putting it in the password file. There are several ways to do it, the
+key trick is to use the crypt(3) routine, and most of the people who need this
+feature already have their own method of how to add user password to the needed
+places.
+
+//Ibo
+
+--- pop_passwd.c.orig	Mon Jul 10 20:27:36 2000
++++ pop_passwd.c	Mon Jul 10 21:03:18 2000
+@@ -687,14 +687,12 @@
+ 	int isapop;
+ 	char *passwd;
+ {
+-	int lines, readlines, counter;
+-	char *puser, *ppass, *pmbox, *ptr;
+-	char buf[512], buf2[512], md5pass[32];
+-	unsigned char digest[16];
++	int lines, readlines;
++	char *puser, *ppass, *pmbox, *encpw;
++	char buf[512];
+ 
+ 	FILE *fd;
+ 	POP_AUTH_TEXT	*ptext;
+-	MD5_CTX ctx;
+ 
+ 	struct stat sb;
+ 
+@@ -749,28 +747,16 @@
+ 		*pmbox++ = '\0';
+ 
+ 		if (!strcmp(pinfo->userid, puser)) {
+-			if (isapop == 1) {
+-				snprintf(buf2, sizeof(buf2), "%s%s",
+-				    pinfo->apopstr, ppass);
+-				MD5Init(&ctx);
+-				MD5Update(&ctx, (unsigned char *)buf2 ,
+-				    strlen(buf2));
+-				MD5Final(digest, &ctx);
+-
+-				ptr = md5pass;
+-	                        for (counter = 0; counter < sizeof(digest);
+-        	                    counter++, ptr += 2)
+-                	                sprintf(ptr, "%02x",
+-					    digest[counter] & 0xFF);
+-				*ptr   = '\0';
+-			}
++			if (isapop == 1)
++				return 1;
+ 
+-			if ((isapop == 0 && !strcmp(passwd, ppass)) ||
+-			    (isapop == 1 && !strcmp(passwd, md5pass))) {
++			encpw = crypt(passwd, ppass);
++			if (!strcmp(encpw, ppass)) {
+ 				strncpy(pinfo->chroot, auth->maildrop,
+ 				    sizeof(pinfo->chroot));
+ 				strncpy(pinfo->maildrop, pmbox,
+ 				    sizeof(pinfo->maildrop));
++				fclose(fd);
+ 				return 0;
+ 			}
+ 		}

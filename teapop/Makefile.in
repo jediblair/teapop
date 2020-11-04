@@ -1,0 +1,90 @@
+# $Id: //depot/Teapop/0.3/Makefile.in#3 $
+#
+
+# NOTE about the DESTDIR thingy:
+#        This is useful:
+#          1) If you want to install into a chroot;
+#          2) For creating binary packages (get everything installed
+#             into DESTDIR, then tar it up from there, for example).
+#        In my case I need 2) to create Debian packages. Re-editing
+#        the Makefiles every release is likely to introduce errors,
+#        and since there is no impact on users who don't need this,
+#        it makes sense to put it in.
+#        Note that *all* install commands should use DESTDIR, and
+#        *no* commands that set locations to be used within
+#        executables (i.e. install-time stuff rather than run-time
+#        stuff).
+
+# Despite the fact that pmake tutorial claims that this will have no effect,
+# it appears that it does.
+#
+# DESTDIR =
+DESTDIR ?=
+
+# PMake doesn't like this
+# export DESTDIR
+
+RM = @RM@
+
+SUBDIRS = config teapop bin etc man
+srcdir=.
+
+all: build
+
+build:
+	@ echo "===> Building Teapop";					\
+	if [ ! -f config/config.h ]; then				\
+		echo "Configure first";					\
+	else								\
+		for i in ${SUBDIRS}; do					\
+			echo "===> Building in $$i...";			\
+			cd $$i;						\
+			DESTDIR='${DESTDIR}' ${MAKE} build; cd ..;	\
+		done;							\
+	fi
+
+install:
+	@ echo "===> Installing Teapop";				\
+	if [ ! -f teapop/teapop ]; then					\
+		echo "Run make first";					\
+	else								\
+		for i in ${SUBDIRS}; do					\
+			echo "==> Installing from $$i...";		\
+			cd $$i; echo "DESTDIR=${DESTDIR}";		\
+			DESTDIR='${DESTDIR}' ${MAKE} install; cd ..;	\
+		done;							\
+	fi
+
+depend:
+	@ echo "===> Updating dependencies in Makefile.in";
+	@ for i in ${SUBDIRS}; do					\
+		echo "==> Updating in $$i...";				\
+			cd $$i;						\
+			DESTDIR='${DESTDIR}' ${MAKE} depend; cd ..;	\
+	done;
+ 
+root-clean:
+	@ echo "===> Cleaning in top";					\
+	echo -n "${RM} -f";						\
+	for i in '*.orig' '.*.orig' '\#*' '*~' '.*~' '*.bak' '.*.bak' core; do\
+		echo -n " $$i";						\
+		REMOVE_FILES="`find . -name "$$i" -print`";		\
+		test -n "$$REMOVE_FILES" &&				\
+		    ${RM} -f $$REMOVE_FILES;				\
+	done || true;							\
+	echo
+
+clean: root-clean
+	@ for i in ${SUBDIRS}; do					\
+		echo "===> Cleaning in $$i";				\
+		cd $$i; DESTDIR='${DESTDIR}' ${MAKE} clean; cd ..;	\
+	done
+
+distclean: clean
+	@ for i in ${SUBDIRS}; do					\
+		echo "===> Cleaning for distribution in $$i";		\
+		cd $$i; DESTDIR='${DESTDIR}' ${MAKE} distclean; cd ..;	\
+	done
+	@ echo "===> Cleaning for distribution in top";
+	${RM} -f Makefile
+

@@ -1,0 +1,10 @@
+#!/bin/sh
+#
+# $Id: //depot/Teapop/0.3/configure#1 $
+#
+if [ ! -x config/configure ]; then
+	chmod a+x config/configure
+fi
+cd config
+./configure $*
+cd ..
